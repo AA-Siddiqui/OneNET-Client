@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:hiddify/ui_to_be/enums/connection_status.dart';
 import 'package:hiddify/ui_to_be/models/server_model.dart';
 import 'package:hiddify/ui_to_be/services/current_app_bridge.dart';
+import 'package:hiddify/ui_to_be/services/vpn_service.dart';
 
 class VpnProvider extends ChangeNotifier {
   ConnectionStatus _status = ConnectionStatus.disconnected;
@@ -35,7 +36,7 @@ class VpnProvider extends ChangeNotifier {
       if (server == null) {
         return;
       }
-      _selectedServer = server;
+      _selectedServer = _resolveDisplayServer(server);
       notifyListeners();
     });
   }
@@ -115,21 +116,23 @@ class VpnProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final loadedServers = await CurrentAppBridge.fetchServers();
+      final loadedServers = await VpnService.fetchVpnNodes();
       if (loadedServers.isNotEmpty) {
         _servers = loadedServers;
       }
 
       final activeServer = await CurrentAppBridge.currentActiveServer();
       if (activeServer != null) {
-        _selectedServer = activeServer;
+        _selectedServer = _resolveDisplayServer(activeServer);
       } else if (_servers.isNotEmpty) {
         _selectedServer = _servers.first;
       }
 
       _hasLoadedServers = true;
+    } on VpnException catch (error) {
+      _nodesErrorMessage = error.message;
     } catch (_) {
-      _nodesErrorMessage = 'Failed to load profiles';
+      _nodesErrorMessage = 'Failed to load VPN nodes';
     } finally {
       _isLoadingServers = false;
       notifyListeners();
@@ -155,7 +158,40 @@ class VpnProvider extends ChangeNotifier {
 
     _selectedServer = matched;
     notifyListeners();
-    unawaited(CurrentAppBridge.selectServer(serverId));
+    unawaited(CurrentAppBridge.selectServerByNode(matched));
+  }
+
+  ServerModel _resolveDisplayServer(ServerModel activeServer) {
+    for (final server in _servers) {
+      if (_matchesServer(server, activeServer)) {
+        return server;
+      }
+    }
+    return activeServer;
+  }
+
+  bool _matchesServer(ServerModel left, ServerModel right) {
+    final leftId = left.id.trim().toLowerCase();
+    final rightId = right.id.trim().toLowerCase();
+    if (leftId.isNotEmpty && rightId.isNotEmpty && leftId == rightId) {
+      return true;
+    }
+
+    final leftIp = left.publicIp.trim().toLowerCase();
+    final rightIp = right.publicIp.trim().toLowerCase();
+    if (leftIp.isNotEmpty && rightIp.isNotEmpty && leftIp == rightIp) {
+      return true;
+    }
+
+    final leftName = left.name.trim().toLowerCase();
+    final rightName = right.name.trim().toLowerCase();
+    if (leftName.isNotEmpty && rightName.isNotEmpty && leftName == rightName) {
+      return true;
+    }
+
+    final leftNode = left.nodeId.trim().toLowerCase();
+    final rightNode = right.nodeId.trim().toLowerCase();
+    return leftNode.isNotEmpty && rightNode.isNotEmpty && leftNode == rightNode;
   }
 
   void _applyStatus(ConnectionStatus status) {

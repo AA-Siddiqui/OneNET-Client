@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:hiddify/core/router/bottom_sheets/bottom_sheets_notifier.dart';
 import 'package:hiddify/features/connection/model/connection_status.dart' as core_connection;
 import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
 import 'package:hiddify/features/profile/model/profile_entity.dart';
@@ -39,6 +40,21 @@ class CurrentAppBridge {
     await _readContainer.read(profilesNotifierProvider.notifier).selectActiveProfile(profileId);
   }
 
+  static Future<bool> selectServerByNode(ServerModel server) async {
+    final profiles = await _readContainer.read(profilesNotifierProvider.future);
+    if (profiles.isEmpty) {
+      return false;
+    }
+
+    final matched = _findBestProfileForServer(server, profiles);
+    if (matched == null) {
+      return false;
+    }
+
+    await _readContainer.read(profilesNotifierProvider.notifier).selectActiveProfile(matched.id);
+    return true;
+  }
+
   static Future<ServerModel?> currentActiveServer() async {
     final profile = await _readContainer.read(activeProfileProvider.future);
     if (profile == null) {
@@ -63,15 +79,35 @@ class CurrentAppBridge {
   }
 
   static Future<void> connect() async {
-    await _readContainer.read(connectionNotifierProvider.notifier).mayConnect();
+    final notifier = _readContainer.read(connectionNotifierProvider.notifier);
+    final state = _readContainer.read(connectionNotifierProvider);
+
+    if (state.hasError) {
+      await notifier.toggleConnection();
+      return;
+    }
+
+    if (state.valueOrNull case core_connection.Disconnected()) {
+      await notifier.toggleConnection();
+    }
   }
 
   static Future<void> disconnect() async {
-    await _readContainer.read(connectionNotifierProvider.notifier).abortConnection();
+    if (_readContainer.read(connectionNotifierProvider).valueOrNull case core_connection.Connected()) {
+      await _readContainer.read(connectionNotifierProvider.notifier).toggleConnection();
+    }
   }
 
   static Future<void> toggleConnection() async {
     await _readContainer.read(connectionNotifierProvider.notifier).toggleConnection();
+  }
+
+  static Future<void> showAddProfile({String? url}) async {
+    await _readContainer.read(bottomSheetsNotifierProvider.notifier).showAddProfile(url: url);
+  }
+
+  static Future<void> showProfilesOverview() async {
+    await _readContainer.read(bottomSheetsNotifierProvider.notifier).showProfilesOverview();
   }
 
   static ConnectionStatus currentConnectionStatus() {
@@ -118,6 +154,83 @@ class CurrentAppBridge {
     final nodeId = profile.id.length >= 8 ? profile.id.substring(0, 8).toUpperCase() : profile.id.toUpperCase();
 
     return ServerModel(id: profile.id, name: profile.name, region: region, nodeId: nodeId, publicIp: host);
+  }
+
+  static ProfileEntity? _findBestProfileForServer(ServerModel server, List<ProfileEntity> profiles) {
+    ProfileEntity? best;
+    var bestScore = 0;
+
+    for (final profile in profiles) {
+      final score = _scoreProfileMatch(server, profile);
+      if (score > bestScore) {
+        bestScore = score;
+        best = profile;
+      }
+    }
+
+    return best;
+  }
+
+  static int _scoreProfileMatch(ServerModel server, ProfileEntity profile) {
+    final normalizedId = _normalize(server.id);
+    final normalizedName = _normalize(server.name);
+    final normalizedRegion = _normalize(server.region);
+    final normalizedNodeId = _normalize(server.nodeId);
+    final normalizedIp = _normalize(server.publicIp);
+    final normalizedProfileId = _normalize(profile.id);
+    final normalizedProfileName = _normalize(profile.name);
+
+    var score = 0;
+
+    if (normalizedId.isNotEmpty && normalizedId == normalizedProfileId) {
+      score += 200;
+    }
+
+    if (normalizedName.isNotEmpty && normalizedName == normalizedProfileName) {
+      score += 120;
+    }
+
+    if (normalizedName.isNotEmpty && normalizedProfileName.contains(normalizedName)) {
+      score += 70;
+    }
+
+    if (normalizedRegion.isNotEmpty && normalizedProfileName.contains(normalizedRegion)) {
+      score += 45;
+    }
+
+    if (normalizedNodeId.isNotEmpty && normalizedProfileName.contains(normalizedNodeId)) {
+      score += 35;
+    }
+
+    if (profile case RemoteProfileEntity(:final url)) {
+      final normalizedHost = _normalize(_safeHost(url));
+
+      if (normalizedIp.isNotEmpty && normalizedHost == normalizedIp) {
+        score += 180;
+      }
+
+      if (normalizedNodeId.isNotEmpty && normalizedHost.contains(normalizedNodeId)) {
+        score += 90;
+      }
+
+      if (normalizedName.isNotEmpty && normalizedHost.contains(normalizedName)) {
+        score += 65;
+      }
+
+      if (normalizedRegion.isNotEmpty && normalizedHost.contains(normalizedRegion)) {
+        score += 35;
+      }
+    }
+
+    return score;
+  }
+
+  static String _safeHost(String url) {
+    return Uri.tryParse(url)?.host ?? '';
+  }
+
+  static String _normalize(String value) {
+    return value.toLowerCase().replaceAll(RegExp('[^a-z0-9]'), '');
   }
 
   static String _firstToken(String input, {required String fallback}) {
