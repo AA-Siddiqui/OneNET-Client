@@ -16,7 +16,7 @@ class GoRouterNotifer extends _$GoRouterNotifer {
   GoRouter build() {
     ref.listen(routingConfigNotifierProvider, (_, next) => rConfig.value = next);
     return GoRouter.routingConfig(
-      initialLocation: '/home',
+      initialLocation: '/onenet',
       navigatorKey: rootNavKey,
       routingConfig: rConfig,
       refreshListenable: RefreshListenable(ref),
