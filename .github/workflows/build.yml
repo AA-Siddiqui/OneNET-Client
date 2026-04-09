@@ -69,14 +69,15 @@ jobs:
             os: ubuntu-latest
             targets: apk
 
-          - platform: android-aab
-            os: ubuntu-latest
-            targets: aab
+          # - platform: android-aab
+          #   os: ubuntu-latest
+          #   targets: aab
 
           - platform: windows
             os: windows-latest
             aarch: amd64
-            targets: exe,msix,zip
+            # targets: exe,msix,zip
+            targets: zip
 
           # - platform: linux
           #   os: ubuntu-22.04
