@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:hiddify/ui_to_be/config/routes.dart';
 import 'package:hiddify/ui_to_be/providers/auth_provider.dart';
@@ -63,9 +62,11 @@ class _SplashScreenState extends State<SplashScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              SvgPicture.asset('assets/images/logo.svg', width: 120).animate().fadeIn(duration: 600.ms),
-              const SizedBox(height: 12),
-              Text('eCG OneNET', style: AppTextStyles.heading2).animate().fadeIn(duration: 600.ms),
+              Image.asset(
+                'assets/ui-to-be/assets/images/full_logo.png',
+                width: 300,
+                fit: BoxFit.contain,
+              ).animate().fadeIn(duration: 600.ms),
               const SizedBox(height: 24),
               Text(
                 AppConstants.appVersionDisplay,

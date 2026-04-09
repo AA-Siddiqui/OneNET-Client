@@ -71,4 +71,4 @@ windows/sign.cer
 # FVM Version Cache
 .fvm/
 
-ui-to-be/
+/ui-to-be

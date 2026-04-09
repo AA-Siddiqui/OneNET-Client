@@ -33,6 +33,11 @@ class DashboardHeader extends StatelessWidget {
         final Color tabsContainer = oneMailTheme ? _oneMailSurface : AppColors.surface.withValues(alpha: 0.7);
         final Color tabsBorder = oneMailTheme ? _oneMailBorder : AppColors.border;
         final Color tabInactive = oneMailTheme ? _oneMailMuted : AppColors.textDim;
+        final String suiteLogo = oneMailTheme
+            ? 'assets/ui-to-be/assets/images/onemail_full_logo_cropped.png'
+            : 'assets/ui-to-be/assets/images/full_logo_cropped.png';
+        final double suiteLogoWidth = oneMailTheme ? 172 : 160;
+        final double suiteLogoHeight = oneMailTheme ? 60 : 56;
 
         return Container(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 14),
@@ -50,7 +55,20 @@ class DashboardHeader extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        _buildSuiteLogo(oneMailTheme),
+                        Row(
+                          children: [
+                            SizedBox(
+                              width: suiteLogoWidth,
+                              height: suiteLogoHeight,
+                              child: Image.asset(
+                                suiteLogo,
+                                fit: BoxFit.contain,
+                                alignment: Alignment.centerLeft,
+                                filterQuality: FilterQuality.high,
+                              ),
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 4),
                         if (isOneMailSelected)
                           StatusBadge(
@@ -114,25 +132,6 @@ class DashboardHeader extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildSuiteLogo(bool oneMailTheme) {
-    final brandColor = oneMailTheme ? _oneMailDark : AppColors.textBright;
-    final suiteColor = oneMailTheme ? _oneMailPrimary : AppColors.accentBright;
-
-    return Row(
-      children: [
-        Text(
-          'eCG ',
-          style: AppTextStyles.mono.copyWith(color: oneMailTheme ? _oneMailBlue : AppColors.accent, fontSize: 12),
-        ),
-        Text('One', style: AppTextStyles.heading2.copyWith(color: brandColor, fontSize: 28, letterSpacing: 0)),
-        Text(
-          oneMailTheme ? 'MAIL' : 'NET',
-          style: AppTextStyles.heading2.copyWith(color: suiteColor, fontSize: 28, letterSpacing: 0),
-        ),
-      ],
     );
   }
 }

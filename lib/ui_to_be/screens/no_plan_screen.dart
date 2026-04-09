@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:hiddify/ui_to_be/config/routes.dart';
@@ -42,8 +41,8 @@ class NoPlanScreen extends StatelessWidget {
                               border: Border.all(color: AppColors.border),
                             ),
                             child: Padding(
-                              padding: const EdgeInsets.all(20),
-                              child: SvgPicture.asset('assets/images/logo.svg'),
+                              padding: const EdgeInsets.all(16),
+                              child: Image.asset('assets/ui-to-be/assets/images/logo.png', fit: BoxFit.contain),
                             ),
                           )
                           .animate()
