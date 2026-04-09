@@ -1,41 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:go_router/go_router.dart';
-import 'package:lucide_icons/lucide_icons.dart';
-import 'package:provider/provider.dart';
-import 'package:hiddify/core/router/go_router/go_router_notifier.dart';
-
 import 'package:hiddify/ui_to_be/config/routes.dart';
 import 'package:hiddify/ui_to_be/providers/auth_provider.dart';
 import 'package:hiddify/ui_to_be/providers/user_provider.dart';
+import 'package:hiddify/ui_to_be/screens/settings/widgets/account_info_card.dart';
+import 'package:hiddify/ui_to_be/screens/settings/widgets/app_version_display.dart';
+import 'package:hiddify/ui_to_be/screens/settings/widgets/settings_tile.dart';
 import 'package:hiddify/ui_to_be/services/current_app_bridge.dart';
 import 'package:hiddify/ui_to_be/services/url_launcher_service.dart';
 import 'package:hiddify/ui_to_be/theme/app_colors.dart';
 import 'package:hiddify/ui_to_be/theme/app_text_styles.dart';
 import 'package:hiddify/ui_to_be/widgets/common/gradient_background.dart';
 import 'package:hiddify/ui_to_be/widgets/common/section_header.dart';
-import 'package:hiddify/ui_to_be/screens/settings/widgets/account_info_card.dart';
-import 'package:hiddify/ui_to_be/screens/settings/widgets/app_version_display.dart';
-import 'package:hiddify/ui_to_be/screens/settings/widgets/settings_tile.dart';
+import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
-
-  void _openHiddifyRoute(String routeName) {
-    final rootContext = rootNavKey.currentContext;
-    if (rootContext == null) {
-      return;
-    }
-    GoRouter.of(rootContext).goNamed(routeName);
-  }
-
-  void _openHiddifyHome() {
-    final rootContext = rootNavKey.currentContext;
-    if (rootContext == null) {
-      return;
-    }
-    GoRouter.of(rootContext).go('/home');
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -100,59 +81,59 @@ class SettingsScreen extends StatelessWidget {
                       onTap: () => CurrentAppBridge.showProfilesOverview(),
                     ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
                     SettingsTile(
+                      icon: LucideIcons.fileCog,
+                      title: 'Config Actions',
+                      subtitle: 'Import/export/reset config and iOS tunnel reset',
+                      onTap: () => Navigator.of(context).pushNamed(Routes.settingsConfig),
+                    ).animate().fadeIn(duration: 400.ms, delay: 110.ms),
+                    SettingsTile(
                       icon: LucideIcons.settings,
                       title: 'General',
                       subtitle: 'Language, theme, diagnostics, startup',
-                      onTap: () => _openHiddifyRoute('general'),
+                      onTap: () => Navigator.of(context).pushNamed(Routes.settingsGeneral),
                     ).animate().fadeIn(duration: 400.ms, delay: 120.ms),
                     SettingsTile(
                       icon: Icons.route,
                       title: 'Routing',
                       subtitle: 'Region, balancer, LAN and IPv6 behavior',
-                      onTap: () => _openHiddifyRoute('routeOptions'),
+                      onTap: () => Navigator.of(context).pushNamed(Routes.settingsRouting),
                     ).animate().fadeIn(duration: 400.ms, delay: 140.ms),
                     SettingsTile(
                       icon: LucideIcons.server,
                       title: 'DNS',
                       subtitle: 'Remote/direct DNS and domain strategy',
-                      onTap: () => _openHiddifyRoute('dnsOptions'),
+                      onTap: () => Navigator.of(context).pushNamed(Routes.settingsDns),
                     ).animate().fadeIn(duration: 400.ms, delay: 160.ms),
                     SettingsTile(
                       icon: LucideIcons.network,
                       title: 'Inbound',
                       subtitle: 'Ports, strict route, LAN access options',
-                      onTap: () => _openHiddifyRoute('inboundOptions'),
+                      onTap: () => Navigator.of(context).pushNamed(Routes.settingsInbound),
                     ).animate().fadeIn(duration: 400.ms, delay: 180.ms),
                     SettingsTile(
                       icon: LucideIcons.scissors,
                       title: 'TLS Tricks',
                       subtitle: 'Fragmentation, SNI case, padding settings',
-                      onTap: () => _openHiddifyRoute('tlsTricks'),
+                      onTap: () => Navigator.of(context).pushNamed(Routes.settingsTlsTricks),
                     ).animate().fadeIn(duration: 400.ms, delay: 200.ms),
                     SettingsTile(
                       icon: LucideIcons.cloud,
                       title: 'Warp',
                       subtitle: 'Warp detour mode and related parameters',
-                      onTap: () => _openHiddifyRoute('warpOptions'),
+                      onTap: () => Navigator.of(context).pushNamed(Routes.settingsWarp),
                     ).animate().fadeIn(duration: 400.ms, delay: 220.ms),
                     SettingsTile(
                       icon: LucideIcons.fileText,
                       title: 'Logs',
                       subtitle: 'Inspect runtime and connection logs',
-                      onTap: () => _openHiddifyRoute('logs'),
+                      onTap: () => Navigator.of(context).pushNamed(Routes.settingsLogs),
                     ).animate().fadeIn(duration: 400.ms, delay: 240.ms),
                     SettingsTile(
                       icon: LucideIcons.info,
                       title: 'About',
                       subtitle: 'Version info and project details',
-                      onTap: () => _openHiddifyRoute('about'),
+                      onTap: () => Navigator.of(context).pushNamed(Routes.settingsAbout),
                     ).animate().fadeIn(duration: 400.ms, delay: 260.ms),
-                    SettingsTile(
-                      icon: LucideIcons.layoutDashboard,
-                      title: 'Open Hiddify Advanced',
-                      subtitle: 'Access existing screens and flows',
-                      onTap: _openHiddifyHome,
-                    ).animate().fadeIn(duration: 400.ms, delay: 280.ms),
 
                     const SizedBox(height: 28),
                     const SectionHeader(label: 'MANAGE'),
