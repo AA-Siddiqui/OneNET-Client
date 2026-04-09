@@ -143,6 +143,7 @@ dev_dependencies:
   # flutter_test:
   #   sdk: flutter
   lint: ^2.3.0
+  flutter_launcher_icons: ^0.14.4
   build_web_compilers: ^4.0.11
   build_runner: ^2.4.13
   json_serializable: ^6.7.1
@@ -191,6 +192,23 @@ flutter_gen:
   output: lib/gen/
   integrations:
     flutter_svg: true
+
+flutter_launcher_icons:
+  image_path: assets/ui-to-be/assets/images/icon.png
+  android: true
+  ios: true
+  macos:
+    generate: true
+    image_path: assets/ui-to-be/assets/images/icon.png
+  windows:
+    generate: true
+    image_path: assets/ui-to-be/assets/images/icon.png
+    icon_size: 48
+  web:
+    generate: true
+    image_path: assets/ui-to-be/assets/images/icon.png
+    background_color: "#00133D"
+    theme_color: "#00133D"
 
 flutter_native_splash:
   color: "#ffffff"
