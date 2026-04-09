@@ -52,7 +52,7 @@ install_integration() {
     cat > "$TARGET_DESKTOP" <<EOF
 [Desktop Entry]
 Type=Application
-Name=Hiddify
+Name=OneNET
 Exec="$APPIMAGE"
 Icon=hiddify
 Terminal=false
@@ -67,12 +67,12 @@ EOF
 show_help() {
 cat << EOF
 Usage: ${0##*/} ...
-start Hiddify or HiddifyCli, when no parameter is given, Hiddify is executed.
+start OneNET or HiddifyCli, when no parameter is given, OneNET is executed.
     -v              show version
 EOF
 }
 show_version() {
-    printf "Hiddify version "
+    printf "OneNET version "
     jq .version <./data/flutter_assets/version.json
 }
 # Initialize variables:
@@ -82,10 +82,10 @@ OPTIND=1
 # Resetting OPTIND is necessary if getopts was used previously in the script.
 # It is a good idea to make OPTIND local if you process options in a function.
 
-# if no arg is provided, execute hiddify app
+# if no arg is provided, execute OneNET app
 if [[ $# == 0 ]];then 
     install_integration
-    exec ./hiddify
+    exec ./OneNET
 else
 
 # processing arguments

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 abstract class Constants {
-  static const appName = "Hiddify";
+  static const appName = "OneNET";
   static const githubUrl = "https://github.com/hiddify/hiddify-next";
   static const licenseUrl = "https://github.com/hiddify/hiddify-next?tab=License-1-ov-file#readme";
   static const githubReleasesApiUrl = "https://api.github.com/repos/hiddify/hiddify-next/releases";
@@ -56,7 +56,11 @@ abstract class IntroConst {
   static const termsAndConditionsKey = 'terms-and-conditions';
   static const githubKey = 'github';
   static const licenseKey = 'license';
-  static const url = <String, String>{IntroConst.termsAndConditionsKey: Constants.termsAndConditionsUrl, IntroConst.githubKey: Constants.githubUrl, IntroConst.licenseKey: Constants.licenseUrl};
+  static const url = <String, String>{
+    IntroConst.termsAndConditionsKey: Constants.termsAndConditionsUrl,
+    IntroConst.githubKey: Constants.githubUrl,
+    IntroConst.licenseKey: Constants.licenseUrl,
+  };
 }
 
 abstract class WarpConst {
@@ -65,11 +69,19 @@ abstract class WarpConst {
   static const warpConsentGiven = "warp-consent-given";
   static const warpTermsOfServiceKey = 'warp-terms-of-service';
   static const warpPrivacyPolicyKey = 'warp-privacy-policy';
-  static const url = <String, String>{WarpConst.warpTermsOfServiceKey: Constants.cfWarpTermsOfService, WarpConst.warpPrivacyPolicyKey: Constants.cfWarpPrivacyPolicy};
+  static const url = <String, String>{
+    WarpConst.warpTermsOfServiceKey: Constants.cfWarpTermsOfService,
+    WarpConst.warpPrivacyPolicyKey: Constants.cfWarpPrivacyPolicy,
+  };
 }
 
 abstract class KeyboardConst {
-  static final allArrows = {LogicalKeyboardKey.arrowUp, LogicalKeyboardKey.arrowDown, LogicalKeyboardKey.arrowLeft, LogicalKeyboardKey.arrowRight};
+  static final allArrows = {
+    LogicalKeyboardKey.arrowUp,
+    LogicalKeyboardKey.arrowDown,
+    LogicalKeyboardKey.arrowLeft,
+    LogicalKeyboardKey.arrowRight,
+  };
   static final horizontalArrows = {LogicalKeyboardKey.arrowLeft, LogicalKeyboardKey.arrowRight};
   static final verticalArrows = {LogicalKeyboardKey.arrowUp, LogicalKeyboardKey.arrowDown};
   static final select = {LogicalKeyboardKey.select, LogicalKeyboardKey.enter, LogicalKeyboardKey.tab};

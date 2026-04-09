@@ -19,18 +19,18 @@ env:
   NDK_VERSION: r28c
   UPLOAD_ARTIFACT: "${{ inputs.upload-artifact }}"
   TAG_NAME: "${{ inputs.tag-name }}"
-  TARGET_NAME_gz: "Hiddify-Linux-x64-AppImage.tar"
-  TARGET_NAME_AppImage: "Hiddify-Linux-x64-AppImage"
-  TARGET_NAME_deb: "Hiddify-Debian-x64"
-  # TARGET_NAME_rpm: "Hiddify-rpm-x64"
-  TARGET_NAME_apk: "Hiddify-Android"
-  TARGET_NAME_aab: "Hiddify-Android"
-  TARGET_NAME_exe: "Hiddify-Windows-Setup-x64"
-  TARGET_NAME_msix: "Hiddify-Windows-x64"
-  TARGET_NAME_zip: "Hiddify-Windows-Portable-x64"
-  TARGET_NAME_dmg: "Hiddify-MacOS"
-  TARGET_NAME_pkg: "Hiddify-MacOS-Installer"
-  TARGET_NAME_ipa: "Hiddify-iOS"
+  TARGET_NAME_gz: "OneNET-Linux-x64-AppImage.tar"
+  TARGET_NAME_AppImage: "OneNET-Linux-x64-AppImage"
+  TARGET_NAME_deb: "OneNET-Debian-x64"
+  # TARGET_NAME_rpm: "OneNET-rpm-x64"
+  TARGET_NAME_apk: "OneNET-Android"
+  TARGET_NAME_aab: "OneNET-Android"
+  TARGET_NAME_exe: "OneNET-Windows-Setup-x64"
+  TARGET_NAME_msix: "OneNET-Windows-x64"
+  TARGET_NAME_zip: "OneNET-Windows-Portable-x64"
+  TARGET_NAME_dmg: "OneNET-MacOS"
+  TARGET_NAME_pkg: "OneNET-MacOS-Installer"
+  TARGET_NAME_ipa: "OneNET-iOS"
   
 
 jobs:
@@ -263,7 +263,7 @@ jobs:
           folder: 'dist'
           timestamp-server: 'http://timestamp.digicert.com'
           recursive: true
-          description: 'Hiddify'
+          description: 'OneNET'
 
       - name: Copy to out Windows
         if: matrix.platform == 'windows'
@@ -315,7 +315,7 @@ jobs:
         run: |
           mkdir out
           ls -R ./build/app/outputs
-          cp ./build/app/outputs/bundle/release/app-release.aab out/hiddify-android-market.aab || echo "no aab"
+          cp ./build/app/outputs/bundle/release/app-release.aab out/onenet-android-market.aab || echo "no aab"
 
       - name: Copy to out unix
         if: startsWith(matrix.platform,'linux') || matrix.platform == 'macos' || matrix.platform == 'ios'
@@ -449,7 +449,7 @@ jobs:
           ls -R ./out
           ls -R ./.github/
           ls -R ./.git/
-          mv out/hiddify-android-market.aab  hiddify-android-market.aab
+          mv out/onenet-android-market.aab  onenet-android-market.aab
 
       - name: prepare_release_message
         run: |
@@ -476,7 +476,7 @@ jobs:
           serviceAccountJson: service_account.json
           packageName: app.hiddify.com
           releaseName: ${{ env.TAG_NAME }}
-          releaseFiles: ./hiddify-android-market.aab
+          releaseFiles: ./onenet-android-market.aab
           track: 'beta'
 
 
@@ -522,7 +522,7 @@ jobs:
 
       - uses: Apple-Actions/upload-testflight-build@v4
         with:
-          app-path: 'out/Hiddify-iOS.ipa' 
+          app-path: 'out/OneNET-iOS.ipa' 
           issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
           api-key-id: ${{ secrets.APPSTORE_API_KEY_ID }}
           api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}

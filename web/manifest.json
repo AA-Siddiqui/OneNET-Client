@@ -1,11 +1,11 @@
 {
-    "name": "Hiddify",
-    "short_name": "Hiddify",
+    "name": "OneNET",
+    "short_name": "OneNET",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#00133D",
     "theme_color": "#00133D",
-    "description": "Hiddify",
+    "description": "OneNET",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
