@@ -3,15 +3,15 @@ import 'dart:async';
 import 'package:hiddify/core/router/bottom_sheets/bottom_sheets_notifier.dart';
 import 'package:hiddify/features/connection/model/connection_status.dart' as core_connection;
 import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
+import 'package:hiddify/features/profile/data/profile_data_providers.dart';
 import 'package:hiddify/features/profile/model/profile_entity.dart';
 import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
 import 'package:hiddify/features/profile/overview/profiles_notifier.dart';
 import 'package:hiddify/features/stats/notifier/stats_notifier.dart';
 import 'package:hiddify/hiddifycore/generated/v2/hcore/hcore.pb.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
-
 import 'package:hiddify/ui_to_be/enums/connection_status.dart';
 import 'package:hiddify/ui_to_be/models/server_model.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 class CurrentAppBridge {
   static ProviderContainer? _container;
@@ -100,6 +100,31 @@ class CurrentAppBridge {
 
   static Future<void> toggleConnection() async {
     await _readContainer.read(connectionNotifierProvider.notifier).toggleConnection();
+  }
+
+  static Future<void> applyProvisionedConfig(String configContent) async {
+    try {
+      final normalized = configContent.trim();
+      if (normalized.isEmpty) {
+        throw const CurrentAppBridgeException('VPN configuration is empty.');
+      }
+
+      final profileRepository = await _readContainer.read(profileRepositoryProvider.future);
+      final activeProfile = await _readContainer.read(activeProfileProvider.future);
+
+      final result = activeProfile == null
+          ? await profileRepository.addLocal(normalized).run()
+          : await profileRepository.offlineUpdate(activeProfile, normalized).run();
+
+      result.match(
+        (failure) => throw CurrentAppBridgeException('Failed to apply VPN configuration: $failure'),
+        (_) => null,
+      );
+    } on CurrentAppBridgeException {
+      rethrow;
+    } catch (error) {
+      throw CurrentAppBridgeException('Failed to apply VPN configuration: $error');
+    }
   }
 
   static Future<void> showAddProfile({String? url}) async {
@@ -251,4 +276,12 @@ class CurrentAppBridge {
       null => ConnectionStatus.disconnected,
     };
   }
+}
+
+class CurrentAppBridgeException implements Exception {
+  final String message;
+  const CurrentAppBridgeException(this.message);
+
+  @override
+  String toString() => message;
 }

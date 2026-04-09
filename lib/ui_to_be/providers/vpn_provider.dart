@@ -6,6 +6,7 @@ import 'package:hiddify/ui_to_be/enums/connection_status.dart';
 import 'package:hiddify/ui_to_be/models/server_model.dart';
 import 'package:hiddify/ui_to_be/services/current_app_bridge.dart';
 import 'package:hiddify/ui_to_be/services/vpn_service.dart';
+import 'package:hiddify/ui_to_be/utils/vpn_trace.dart';
 
 class VpnProvider extends ChangeNotifier {
   ConnectionStatus _status = ConnectionStatus.disconnected;
@@ -56,35 +57,76 @@ class VpnProvider extends ChangeNotifier {
       _connectedSince != null ? DateTime.now().difference(_connectedSince!) : Duration.zero;
 
   Future<void> toggleConnection({required String? authToken, String? traceId}) async {
-    _lastTraceId = traceId;
+    final resolvedTraceId = (traceId != null && traceId.trim().isNotEmpty)
+        ? traceId.trim()
+        : VpnTraceLogger.newTraceId();
+    _lastTraceId = resolvedTraceId;
     if (_status == ConnectionStatus.connected) {
-      await disconnect(traceId: traceId);
+      await disconnect(traceId: resolvedTraceId);
       return;
     }
     if (_status == ConnectionStatus.disconnected) {
-      await connect(authToken: authToken, traceId: traceId);
+      await connect(authToken: authToken, traceId: resolvedTraceId);
     }
   }
 
   Future<void> connect({required String? authToken, String? traceId}) async {
-    _lastTraceId = traceId;
+    final resolvedTraceId = (traceId != null && traceId.trim().isNotEmpty)
+        ? traceId.trim()
+        : VpnTraceLogger.newTraceId();
+    _lastTraceId = resolvedTraceId;
     _status = ConnectionStatus.connecting;
     _errorMessage = null;
     _needsVpnPermission = false;
     notifyListeners();
 
     try {
+      final normalizedToken = authToken?.trim() ?? '';
+      if (normalizedToken.isEmpty) {
+        throw const VpnException('Please sign in to connect.');
+      }
+
+      final serverIp = _selectedServer.publicIp.trim();
+      if (serverIp.isEmpty) {
+        throw const VpnException('Please select a VPN server.');
+      }
+
+      VpnTraceLogger.log(
+        traceId: resolvedTraceId,
+        layer: 'client.provider.vpn',
+        step: 'vpn_connect_started',
+        details: <String, Object?>{'server_ip': serverIp, 'server_id': _selectedServer.id},
+      );
+
+      final provisioned = await VpnService.provisionConnection(
+        token: normalizedToken,
+        serverIp: serverIp,
+        traceId: resolvedTraceId,
+      );
+
+      _lastTraceId = provisioned.traceId;
+      _assignedIp = provisioned.assignedIp;
+
+      await VpnService.applyProvisionedConfig(provisioned.config, fallbackContent: provisioned.serverConfig);
+
       await CurrentAppBridge.connect();
       final refreshed = CurrentAppBridge.currentConnectionStatus();
       if (refreshed == ConnectionStatus.connected) {
         _applyStatus(refreshed);
       } else {
         _status = refreshed;
+        _assignedIp = null;
         _errorMessage = 'Unable to establish connection.';
         notifyListeners();
       }
+    } on VpnException catch (error) {
+      _status = ConnectionStatus.disconnected;
+      _assignedIp = null;
+      _errorMessage = error.message;
+      notifyListeners();
     } catch (_) {
       _status = ConnectionStatus.disconnected;
+      _assignedIp = null;
       _errorMessage = 'Unable to establish connection.';
       notifyListeners();
     }
