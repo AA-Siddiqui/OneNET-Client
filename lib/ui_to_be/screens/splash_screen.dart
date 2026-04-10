@@ -69,32 +69,31 @@ class _SplashScreenState extends State<SplashScreen> {
     if (introCompleted) return;
 
     Region selectedRegion = container.read(ConfigOptions.region);
-    final pickedRegion = await showModalBottomSheet<Region>(
+    final pickedRegion = await showDialog<Region>(
       context: context,
-      isDismissible: false,
-      enableDrag: false,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (modalContext) {
+      barrierDismissible: false,
+      builder: (dialogContext) {
         return StatefulBuilder(
-          builder: (modalContext, setModalState) {
-            return SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+          builder: (dialogContext, setDialogState) {
+            return AlertDialog(
+              backgroundColor: AppColors.surface,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: Text('Select your region', style: AppTextStyles.heading2),
+              content: SizedBox(
+                width: 420,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Select your region', style: AppTextStyles.heading2),
-                    const SizedBox(height: 8),
                     Text(
                       'Choose the region that best matches your location.',
                       style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textDim),
                     ),
                     const SizedBox(height: 16),
-                    SizedBox(
-                      height: 300,
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 320),
                       child: ListView(
+                        shrinkWrap: true,
                         children: Region.values
                             .map(
                               (region) => ListTile(
@@ -107,7 +106,7 @@ class _SplashScreenState extends State<SplashScreen> {
                                   color: selectedRegion == region ? AppColors.accentBright : AppColors.textDim,
                                 ),
                                 title: Text(_regionLabel(region), style: AppTextStyles.bodyMedium),
-                                onTap: () => setModalState(() => selectedRegion = region),
+                                onTap: () => setDialogState(() => selectedRegion = region),
                               ),
                             )
                             .toList(),
@@ -117,7 +116,7 @@ class _SplashScreenState extends State<SplashScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton(
-                        onPressed: () => Navigator.of(modalContext).pop(selectedRegion),
+                        onPressed: () => Navigator.of(dialogContext).pop(selectedRegion),
                         child: const Text('Continue'),
                       ),
                     ),
