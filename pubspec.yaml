@@ -213,12 +213,12 @@ flutter_launcher_icons:
     theme_color: "#00133D"
 
 flutter_native_splash:
-  color: "#ffffff"
-  image: assets/images/source/ic_launcher_splash.png
+  color: "#000000"
+  image: assets/ui-to-be/assets/images/icon.png
   android_gravity: center
   android_12:
-    color: "#ffffff"
-    image: assets/images/source/ic_launcher_foreground.png
+    color: "#000000"
+    image: assets/ui-to-be/assets/images/icon.png
 
 ffigen:
   name: "HiddifyCoreNativeLibrary"

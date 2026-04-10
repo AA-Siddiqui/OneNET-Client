@@ -14,6 +14,7 @@ part 'window_notifier.g.dart';
 
 const minimumWindowSize = Size(368, 568);
 const defaultWindowSize = Size(868, 668);
+const lockedWindowsWindowSize = Size(340, 680);
 
 @Riverpod(keepAlive: true)
 class WindowNotifier extends _$WindowNotifier with AppLogger {
@@ -31,6 +32,14 @@ class WindowNotifier extends _$WindowNotifier with AppLogger {
   }
 
   Future<void> saveWindowState() async {
+    if (Platform.isWindows) {
+      final position = await windowManager.getPosition();
+      await ref.read(Preferences.windowMaximized.notifier).update(false);
+      await ref.read(Preferences.windowSize.notifier).update(lockedWindowsWindowSize);
+      await ref.read(Preferences.windowPosition.notifier).update(position);
+      return;
+    }
+
     if (await windowManager.isMaximized()) {
       await ref.read(Preferences.windowMaximized.notifier).update(true);
     } else {
@@ -44,9 +53,10 @@ class WindowNotifier extends _$WindowNotifier with AppLogger {
   }
 
   Future<void> initWindowState() async {
-    final isMaximized = ref.read(Preferences.windowMaximized);
+    final isWindowsLocked = Platform.isWindows;
+    final isMaximized = !isWindowsLocked && ref.read(Preferences.windowMaximized);
     loggy.debug("window state. maximized: $isMaximized");
-    final size = ref.read(Preferences.windowSize);
+    final size = isWindowsLocked ? lockedWindowsWindowSize : ref.read(Preferences.windowSize);
     loggy.debug("window state. size: $size");
     final position = ref.read(Preferences.windowPosition);
     final isWindowVisible = position != null && await checkWindowVisivility(position, size);
@@ -55,8 +65,19 @@ class WindowNotifier extends _$WindowNotifier with AppLogger {
     loggy.debug("window state. silent start: ${silentStart ? "Enabled" : "Disabled"}");
 
     await windowManager.waitUntilReadyToShow(
-      WindowOptions(size: size, center: !isWindowVisible, minimumSize: minimumWindowSize),
+      WindowOptions(
+        size: size,
+        center: !isWindowVisible,
+        minimumSize: isWindowsLocked ? lockedWindowsWindowSize : minimumWindowSize,
+        maximumSize: isWindowsLocked ? lockedWindowsWindowSize : null,
+      ),
     );
+    if (isWindowsLocked) {
+      await windowManager.setSize(lockedWindowsWindowSize);
+      await windowManager.setResizable(false);
+      await ref.read(Preferences.windowMaximized.notifier).update(false);
+      await ref.read(Preferences.windowSize.notifier).update(lockedWindowsWindowSize);
+    }
     if (isWindowVisible) {
       await windowManager.setPosition(position);
       loggy.debug("restoring window to position: $position");

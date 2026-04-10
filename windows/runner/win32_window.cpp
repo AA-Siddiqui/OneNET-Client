@@ -27,6 +27,8 @@ namespace
   constexpr const wchar_t kGetPreferredBrightnessRegKey[] =
       L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize";
   constexpr const wchar_t kGetPreferredBrightnessRegValue[] = L"AppsUseLightTheme";
+  constexpr int kLockedWindowWidth = 340;
+  constexpr int kLockedWindowHeight = 680;
 
   // The number of Win32Window objects that currently exist.
   static int g_active_window_count = 0;
@@ -154,10 +156,10 @@ bool Win32Window::Create(const std::wstring &title,
   UINT dpi = FlutterDesktopGetDpiForMonitor(monitor);
   double scale_factor = dpi / 96.0;
 
-  HWND window = CreateWindow(
+    HWND window = CreateWindow(
       // window_class, title.c_str(), WS_OVERLAPPEDWINDOW, // window_manager hidden at launch
       window_class, title.c_str(),
-      WS_OVERLAPPEDWINDOW, // do not add WS_VISIBLE since the window will be shown later
+      WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, // do not add WS_VISIBLE since the window will be shown later
       Scale(origin.x, scale_factor), Scale(origin.y, scale_factor),
       Scale(size.width, scale_factor), Scale(size.height, scale_factor),
       nullptr, nullptr, GetModuleHandle(nullptr), this);
@@ -246,6 +248,21 @@ Win32Window::MessageHandler(HWND hwnd,
 {
   switch (message)
   {
+  case WM_GETMINMAXINFO:
+  {
+    auto *minmax = reinterpret_cast<MINMAXINFO *>(lparam);
+    HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+    UINT dpi = FlutterDesktopGetDpiForMonitor(monitor);
+    double scale_factor = dpi / 96.0;
+    const LONG locked_width = Scale(kLockedWindowWidth, scale_factor);
+    const LONG locked_height = Scale(kLockedWindowHeight, scale_factor);
+    minmax->ptMinTrackSize.x = locked_width;
+    minmax->ptMinTrackSize.y = locked_height;
+    minmax->ptMaxTrackSize.x = locked_width;
+    minmax->ptMaxTrackSize.y = locked_height;
+    return 0;
+  }
+
   case WM_DESTROY:
     window_handle_ = nullptr;
     Destroy();
