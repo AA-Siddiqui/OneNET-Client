@@ -20,6 +20,7 @@ class VpnProvider extends ChangeNotifier {
   bool _hasLoadedServers = false;
   List<ServerModel> _servers = <ServerModel>[ServerModel.malaysia()];
   ServerModel _selectedServer = ServerModel.malaysia();
+  ServerModel? _connectedServerDisplayFallback;
 
   StreamSubscription<ConnectionStatus>? _statusSubscription;
   StreamSubscription<ServerModel?>? _activeServerSubscription;
@@ -78,6 +79,7 @@ class VpnProvider extends ChangeNotifier {
     _status = ConnectionStatus.connecting;
     _errorMessage = null;
     _needsVpnPermission = false;
+    _connectedServerDisplayFallback = _selectedServer;
     notifyListeners();
 
     try {
@@ -123,11 +125,13 @@ class VpnProvider extends ChangeNotifier {
       _status = ConnectionStatus.disconnected;
       _assignedIp = null;
       _errorMessage = error.message;
+      _connectedServerDisplayFallback = null;
       notifyListeners();
     } catch (_) {
       _status = ConnectionStatus.disconnected;
       _assignedIp = null;
       _errorMessage = 'Unable to establish connection.';
+      _connectedServerDisplayFallback = null;
       notifyListeners();
     }
   }
@@ -144,6 +148,7 @@ class VpnProvider extends ChangeNotifier {
       _assignedIp = null;
       _errorMessage = null;
       _needsVpnPermission = false;
+      _connectedServerDisplayFallback = null;
       notifyListeners();
     }
   }
@@ -216,15 +221,45 @@ class VpnProvider extends ChangeNotifier {
         );
       }
     }
+
+    final fallbackServer = _connectedServerDisplayFallback;
+    if (fallbackServer != null && _isGenericProvisionedName(activeServer.name)) {
+      return ServerModel(
+        id: activeServer.id.isNotEmpty ? activeServer.id : fallbackServer.id,
+        name: _resolveDisplayName(activeServer.name, fallback: fallbackServer.name),
+        region: fallbackServer.region.isNotEmpty ? fallbackServer.region : activeServer.region,
+        nodeId: fallbackServer.nodeId.isNotEmpty ? fallbackServer.nodeId : activeServer.nodeId,
+        publicIp: fallbackServer.publicIp.isNotEmpty ? fallbackServer.publicIp : activeServer.publicIp,
+        isAvailable: fallbackServer.isAvailable,
+      );
+    }
+
     return activeServer;
   }
 
   String _resolveDisplayName(String profileName, {required String fallback}) {
-    final normalized = profileName.trim();
-    if (normalized.isNotEmpty) {
-      return normalized;
+    final normalizedProfileName = profileName.trim();
+    final normalizedFallback = fallback.trim();
+
+    if (normalizedFallback.isNotEmpty && _isGenericProvisionedName(normalizedProfileName)) {
+      return normalizedFallback;
     }
-    return fallback;
+
+    if (normalizedProfileName.isNotEmpty) {
+      return normalizedProfileName;
+    }
+
+    return normalizedFallback;
+  }
+
+  bool _isGenericProvisionedName(String name) {
+    final normalized = name.trim();
+    if (normalized.isEmpty) {
+      return false;
+    }
+
+    final upperCased = normalized.toUpperCase();
+    return upperCased.startsWith('ONENET') || upperCased.startsWith('HIDDIFY');
   }
 
   bool _matchesServer(ServerModel left, ServerModel right) {
@@ -264,6 +299,7 @@ class VpnProvider extends ChangeNotifier {
       _connectedSince = null;
       _assignedIp = null;
       _durationTimer?.cancel();
+      _connectedServerDisplayFallback = null;
     }
 
     notifyListeners();
