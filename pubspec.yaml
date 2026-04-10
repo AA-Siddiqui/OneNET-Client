@@ -196,6 +196,8 @@ flutter_gen:
 flutter_launcher_icons:
   image_path: assets/ui-to-be/assets/images/icon.png
   android: true
+  adaptive_icon_background: "#00133D"
+  adaptive_icon_foreground: assets/ui-to-be/assets/images/icon.png
   ios: true
   macos:
     generate: true

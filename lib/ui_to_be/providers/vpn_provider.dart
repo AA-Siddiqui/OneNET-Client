@@ -206,10 +206,25 @@ class VpnProvider extends ChangeNotifier {
   ServerModel _resolveDisplayServer(ServerModel activeServer) {
     for (final server in _servers) {
       if (_matchesServer(server, activeServer)) {
-        return server;
+        return ServerModel(
+          id: activeServer.id.isNotEmpty ? activeServer.id : server.id,
+          name: _resolveDisplayName(activeServer.name, fallback: server.name),
+          region: server.region.isNotEmpty ? server.region : activeServer.region,
+          nodeId: server.nodeId.isNotEmpty ? server.nodeId : activeServer.nodeId,
+          publicIp: server.publicIp.isNotEmpty ? server.publicIp : activeServer.publicIp,
+          isAvailable: server.isAvailable,
+        );
       }
     }
     return activeServer;
+  }
+
+  String _resolveDisplayName(String profileName, {required String fallback}) {
+    final normalized = profileName.trim();
+    if (normalized.isNotEmpty) {
+      return normalized;
+    }
+    return fallback;
   }
 
   bool _matchesServer(ServerModel left, ServerModel right) {
