@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "OneNET" "\0"
-            VALUE "FileDescription", "OneNET" "\0"
+            VALUE "CompanyName", "eCG" "\0"
+            VALUE "FileDescription", "eCG" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "OneNET" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 OneNET. All rights reserved." "\0"
-            VALUE "OriginalFilename", "OneNET.exe" "\0"
-            VALUE "ProductName", "OneNET" "\0"
+            VALUE "InternalName", "eCG" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 eCG. All rights reserved." "\0"
+            VALUE "OriginalFilename", "eCG.exe" "\0"
+            VALUE "ProductName", "eCG" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

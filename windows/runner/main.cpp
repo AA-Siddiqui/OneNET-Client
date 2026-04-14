@@ -51,13 +51,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
 
   // Replace "example" with the generated title found as parameter of `window.Create` in this file.
   // You may ignore the result if you need to create another window.
-  if (SendAppLinkToInstance(L"OneNET"))
+  if (SendAppLinkToInstance(L"eCG"))
   {
     return EXIT_SUCCESS;
   }
 
-  HANDLE hMutexInstance = CreateMutex(NULL, TRUE, L"OneNETMutex");
-  HWND handle = FindWindowA(NULL, "OneNET");
+  HANDLE hMutexInstance = CreateMutex(NULL, TRUE, L"eCGMutex");
+  HWND handle = FindWindowA(NULL, "eCG");
 
   if (GetLastError() == ERROR_ALREADY_EXISTS)
   {
@@ -65,7 +65,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
     std::vector<std::string> command_line_arguments = GetCommandLineArguments();
     project.set_dart_entrypoint_arguments(std::move(command_line_arguments));
     FlutterWindow window(project);
-    if (window.SendAppLinkToInstance(L"OneNET"))
+    if (window.SendAppLinkToInstance(L"eCG"))
     {
       return false;
     }
@@ -97,7 +97,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(340, 680);
-  if (!window.Create(L"OneNET", origin, size))
+  if (!window.Create(L"eCG", origin, size))
   {
     return EXIT_FAILURE;
   }

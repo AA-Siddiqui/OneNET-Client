@@ -63,6 +63,7 @@ Name: "{userstartup}\\{{DISPLAY_NAME}}"; Filename: "{app}\\{{EXECUTABLE_NAME}}";
 Filename: "{app}\\{{EXECUTABLE_NAME}}"; Description: "{cm:LaunchProgram,{{DISPLAY_NAME}}}"; Flags: {% if PRIVILEGES_REQUIRED == 'admin' %}runascurrentuser{% endif %} nowait postinstall skipifsilent
 
 [UninstallDelete]
+Type: filesandordirs; Name: "{userappdata}\eCG"
 Type: filesandordirs; Name: "{userappdata}\OneNET"
 Type: filesandordirs; Name: "{userappdata}\Hiddify"
 
@@ -71,10 +72,13 @@ function InitializeSetup(): Boolean;
 var
   ResultCode: Integer;
 begin
+  Exec('taskkill', '/F /IM eCG.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode)
   Exec('taskkill', '/F /IM OneNET.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode)
   Exec('taskkill', '/F /IM Hiddify.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode)
+  Exec('net', 'stop "eCGTunnelService"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode)
   Exec('net', 'stop "OneNETTunnelService"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode)
   Exec('net', 'stop "HiddifyTunnelService"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode)
+  Exec('sc.exe', 'delete "eCGTunnelService"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode)
   Exec('sc.exe', 'delete "OneNETTunnelService"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode)
   Exec('sc.exe', 'delete "HiddifyTunnelService"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode)
   Result := True;

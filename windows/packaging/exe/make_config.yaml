@@ -1,9 +1,9 @@
 app_id: 6L903538-42B1-4596-G479-BJ779F21A65D
-publisher: OneNET
+publisher: eCG
 publisher_url: https://github.com/hiddify/hiddify-app
-display_name: OneNET
+display_name: eCG
 create_desktop_icon: true
-install_dir_name: "{autopf64}\\OneNET"
+install_dir_name: "{autopf64}\\eCG"
 setup_icon_file: windows\runner\resources\app_icon.ico
 locales:
   - ar

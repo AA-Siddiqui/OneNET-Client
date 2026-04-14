@@ -301,11 +301,11 @@ windows-zip-release:
 	$(YELLOW)Post-processing Windows portable$(DONE); \
 	cd "$$ZIP_DIR"; \
 	$(BLUE)Extracting and Repacking...$(DONE); \
-	mkdir -p OneNET; \
-	unzip -q "$$ZIP_FILE" -d OneNET/; \
+	mkdir -p eCG; \
+	unzip -q "$$ZIP_FILE" -d eCG/; \
 	rm "$$ZIP_FILE"; \
-	tar -a -cf "$$FILE_NAME.zip" OneNET; \
-	rm -rf OneNET; \
+	tar -a -cf "$$FILE_NAME.zip" eCG; \
+	rm -rf eCG; \
 	$(GREEN)Successful$(DONE)
 
 windows-exe-release:
@@ -391,17 +391,17 @@ linux-appimage-release:
 	$(BLUE)Deleting bundled libstdc++ to fix Arch Linux compatibility...$(DONE); \
 	find squashfs-root/usr/lib -name "libstdc++.so.6" -delete; \
 	$(BLUE)Rebuilding AppImage$(DONE); \
-	ARCH=x86_64 appimagetool --no-appstream squashfs-root OneNET.AppImage > /dev/null; \
+	ARCH=x86_64 appimagetool --no-appstream squashfs-root eCG.AppImage > /dev/null; \
 	$(BLUE)Cleaning up squashfs$(DONE); \
 	rm -rf squashfs-root; \
 	$(YELLOW)Creating Portable Package$(DONE); \
-	PKG_DIR_NAME="onenet-linux-appimage"; \
+	PKG_DIR_NAME="ecg-linux-appimage"; \
 	$(BLUE)Creating dir: $$PKG_DIR_NAME$(DONE); \
 	mkdir -p "$$PKG_DIR_NAME"; \
-	$(BLUE)Moving OneNET.AppImage$(DONE); \
-	cp -p "OneNET.AppImage" "$$PKG_DIR_NAME/OneNET.AppImage"; \
+	$(BLUE)Moving eCG.AppImage$(DONE); \
+	cp -p "eCG.AppImage" "$$PKG_DIR_NAME/eCG.AppImage"; \
 	$(BLUE)Creating Portable Home directory$(DONE); \
-	mkdir -p "$$PKG_DIR_NAME/OneNET.AppImage.home"; \
+	mkdir -p "$$PKG_DIR_NAME/eCG.AppImage.home"; \
 	$(BLUE)Compressing to .tar.gz$(DONE); \
 	tar -czf "$$PKG_DIR_NAME.tar.gz" -C . "$$PKG_DIR_NAME"; \
 	$(BLUE)Removing intermediate directory$(DONE); \

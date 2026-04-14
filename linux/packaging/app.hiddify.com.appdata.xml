@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  OneNET AppStream Metadata
+  eCG AppStream Metadata
   Place this file at: linux/packaging/myappid.appdata.xml
 -->
 <component type="desktop-application">
@@ -8,20 +8,20 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
 
-  <name>OneNET</name>
+  <name>eCG</name>
   <summary>Modern Proxy and VPN Manager for Linux</summary>
 
-  <developer_name>OneNET</developer_name>
+  <developer_name>eCG</developer_name>
   <update_contact>linux@hiddify.com</update_contact>
 
   <description>
     <p>
-      OneNET is an advanced proxy and VPN client built for privacy and control. 
+      eCG is an advanced proxy and VPN client built for privacy and control. 
       It supports multiple backend protocols including V2Ray, Xray, Clash, and Sing-box, 
       providing flexibility and performance for all kinds of network configurations.
     </p>
     <p>
-      Designed with simplicity in mind, OneNET helps users connect securely and 
+      Designed with simplicity in mind, eCG helps users connect securely and 
       manage complex proxy configurations through a clean graphical interface.
     </p>
   </description>
@@ -29,7 +29,7 @@
   <screenshots>
     <screenshot type="default">
       <image>https://hiddify.com/assets/hiddify-next-mobile.svg</image>
-      <caption>Main Interface of OneNET</caption>
+      <caption>Main Interface of eCG</caption>
     </screenshot>
   </screenshots>
 
@@ -42,7 +42,7 @@
   </categories>
 
   <keywords>
-    <keyword>OneNET</keyword>
+    <keyword>eCG</keyword>
     <keyword>Proxy</keyword>
     <keyword>VPN</keyword>
     <keyword>V2Ray</keyword>
@@ -73,7 +73,7 @@
   <releases>
     <release version="1.0.0" date="2025-10-25">
       <description>
-        <p>Initial Linux release of OneNET with multi-protocol support and modern UI.</p>
+        <p>Initial Linux release of eCG with multi-protocol support and modern UI.</p>
       </description>
     </release>
   </releases>

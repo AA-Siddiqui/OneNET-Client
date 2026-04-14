@@ -1,9 +1,9 @@
-display_name: OneNET
+display_name: eCG
 
 icon: assets/images/source/ic_launcher_border.png
 
 keywords:
-  - OneNET
+  - eCG
   - Proxy
   - VPN
   - V2ray
@@ -12,7 +12,7 @@ keywords:
   - Psiphon
   - OpenVPN
 
-generic_name: OneNET
+generic_name: eCG
 
 actions:
   - name: Start
