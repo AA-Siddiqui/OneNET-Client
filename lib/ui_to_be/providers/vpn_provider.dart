@@ -13,6 +13,7 @@ class VpnProvider extends ChangeNotifier {
   ConnectionStatus _status = ConnectionStatus.disconnected;
   DateTime? _connectedSince;
   DateTime? _persistedConnectedSince;
+  bool _hasRestoredSessionState = false;
   String? _assignedIp;
   String? _errorMessage;
   String? _nodesErrorMessage;
@@ -27,13 +28,10 @@ class VpnProvider extends ChangeNotifier {
   StreamSubscription<ConnectionStatus>? _statusSubscription;
   StreamSubscription<ServerModel?>? _activeServerSubscription;
   Timer? _durationTimer;
+  Timer? _disconnectConfirmationTimer;
 
   VpnProvider() {
     _status = CurrentAppBridge.currentConnectionStatus();
-    if (_status == ConnectionStatus.connected) {
-      _connectedSince = DateTime.now();
-      _startDurationTimer();
-    }
 
     _statusSubscription = CurrentAppBridge.watchConnectionStatus().listen(_applyStatus);
     _activeServerSubscription = CurrentAppBridge.watchActiveServer().listen((server) {
@@ -59,8 +57,14 @@ class VpnProvider extends ChangeNotifier {
   List<ServerModel> get servers => List.unmodifiable(_servers);
   ServerModel get server => _selectedServer;
 
-  Duration get connectedDuration =>
-      _connectedSince != null ? DateTime.now().difference(_connectedSince!) : Duration.zero;
+  Duration get connectedDuration {
+    final startedAt = _connectedSince ?? _persistedConnectedSince;
+    if (startedAt == null) {
+      return Duration.zero;
+    }
+    final elapsed = DateTime.now().difference(startedAt);
+    return elapsed.isNegative ? Duration.zero : elapsed;
+  }
 
   Future<void> toggleConnection({required String? authToken, String? traceId}) async {
     final resolvedTraceId = (traceId != null && traceId.trim().isNotEmpty)
@@ -82,6 +86,7 @@ class VpnProvider extends ChangeNotifier {
         : VpnTraceLogger.newTraceId();
     _lastTraceId = resolvedTraceId;
     _status = ConnectionStatus.connecting;
+    _disconnectConfirmationTimer?.cancel();
     _connectedSince = null;
     _persistedConnectedSince = null;
     _errorMessage = null;
@@ -151,6 +156,7 @@ class VpnProvider extends ChangeNotifier {
 
   Future<void> disconnect({String? traceId}) async {
     _lastTraceId = traceId;
+    _disconnectConfirmationTimer?.cancel();
     _durationTimer?.cancel();
 
     try {
@@ -245,10 +251,20 @@ class VpnProvider extends ChangeNotifier {
     if (_status == ConnectionStatus.connected) {
       if (persistedConnectedSince != null) {
         _connectedSince = persistedConnectedSince;
+        _startDurationTimer();
         hasChanges = true;
       } else if (_connectedSince != null) {
         _persistConnectedSince(_connectedSince!);
       }
+    }
+
+    _hasRestoredSessionState = true;
+
+    if (_status == ConnectionStatus.connected && _connectedSince == null) {
+      _connectedSince = DateTime.now();
+      _persistConnectedSince(_connectedSince!);
+      _startDurationTimer();
+      hasChanges = true;
     }
 
     if (hasChanges) {
@@ -348,7 +364,11 @@ class VpnProvider extends ChangeNotifier {
     _status = status;
 
     if (status == ConnectionStatus.connected) {
-      _connectedSince ??= _persistedConnectedSince ?? DateTime.now();
+      _disconnectConfirmationTimer?.cancel();
+      _connectedSince ??= _persistedConnectedSince;
+      if (_connectedSince == null && _hasRestoredSessionState) {
+        _connectedSince = DateTime.now();
+      }
       if (_connectedSince != null) {
         _persistConnectedSince(_connectedSince!);
       }
@@ -360,12 +380,8 @@ class VpnProvider extends ChangeNotifier {
       _durationTimer?.cancel();
       _connectedServerDisplayFallback = null;
 
-      // Ignore duplicate disconnected events so a persisted connected timestamp
-      // can still be recovered if the app resumes and quickly reports connected.
       if (previousStatus != ConnectionStatus.disconnected) {
-        _connectedSince = null;
-        _persistedConnectedSince = null;
-        unawaited(StorageService.clearVpnConnectedSince());
+        _scheduleDisconnectedStateCommit();
       }
     }
 
@@ -381,6 +397,30 @@ class VpnProvider extends ChangeNotifier {
     unawaited(StorageService.saveLastSelectedVpnServer(server));
   }
 
+  void _scheduleDisconnectedStateCommit() {
+    _disconnectConfirmationTimer?.cancel();
+    _disconnectConfirmationTimer = Timer(const Duration(seconds: 2), () {
+      unawaited(_commitDisconnectedStateIfStillDisconnected());
+    });
+  }
+
+  Future<void> _commitDisconnectedStateIfStillDisconnected() async {
+    if (_status != ConnectionStatus.disconnected) {
+      return;
+    }
+
+    final refreshedStatus = CurrentAppBridge.currentConnectionStatus();
+    if (refreshedStatus != ConnectionStatus.disconnected) {
+      _applyStatus(refreshedStatus);
+      return;
+    }
+
+    _connectedSince = null;
+    _persistedConnectedSince = null;
+    await StorageService.clearVpnConnectedSince();
+    notifyListeners();
+  }
+
   void _startDurationTimer() {
     _durationTimer?.cancel();
     _durationTimer = Timer.periodic(const Duration(seconds: 1), (_) => notifyListeners());
@@ -388,6 +428,7 @@ class VpnProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disconnectConfirmationTimer?.cancel();
     _durationTimer?.cancel();
     _statusSubscription?.cancel();
     _activeServerSubscription?.cancel();
