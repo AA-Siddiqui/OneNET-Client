@@ -11,10 +11,15 @@ class VpnService {
     required String token,
     required String serverIp,
     required String traceId,
+    String? preferredProfileName,
     int attempt = 1,
   }) async {
     final provisioned = await provisionConnection(token: token, serverIp: serverIp, traceId: traceId, attempt: attempt);
-    await applyProvisionedConfig(provisioned.config, fallbackContent: provisioned.serverConfig);
+    await applyProvisionedConfig(
+      provisioned.config,
+      fallbackContent: provisioned.serverConfig,
+      preferredProfileName: preferredProfileName,
+    );
     await CurrentAppBridge.connect();
     return provisioned.assignedIp ?? '';
   }
@@ -84,7 +89,11 @@ class VpnService {
     );
   }
 
-  static Future<void> applyProvisionedConfig(String configContent, {String? fallbackContent}) async {
+  static Future<void> applyProvisionedConfig(
+    String configContent, {
+    String? fallbackContent,
+    String? preferredProfileName,
+  }) async {
     final candidates = <String>[];
 
     void addCandidate(String? value) {
@@ -103,7 +112,7 @@ class VpnService {
 
     for (final candidate in candidates) {
       try {
-        await CurrentAppBridge.applyProvisionedConfig(candidate);
+        await CurrentAppBridge.applyProvisionedConfig(candidate, preferredProfileName: preferredProfileName);
         return;
       } on CurrentAppBridgeException catch (error) {
         bridgeError = error;

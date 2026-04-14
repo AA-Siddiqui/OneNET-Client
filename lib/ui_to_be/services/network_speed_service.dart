@@ -33,6 +33,10 @@ class NetworkSpeedService {
           return;
         }
 
+        if (stats.hasTrafficAvailable() && !stats.trafficAvailable) {
+          return;
+        }
+
         _controller.add(NetworkSpeed(downloadMbps: _toMbps(stats.downlink), uploadMbps: _toMbps(stats.uplink)));
       },
       onError: (error, stackTrace) {

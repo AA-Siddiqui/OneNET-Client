@@ -4,11 +4,11 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
-import '../../../enums/connection_status.dart';
-import '../../../providers/vpn_provider.dart';
-import '../../../services/network_speed_service.dart';
-import '../../../theme/app_colors.dart';
-import '../../../theme/app_text_styles.dart';
+import 'package:hiddify/ui_to_be/enums/connection_status.dart';
+import 'package:hiddify/ui_to_be/providers/vpn_provider.dart';
+import 'package:hiddify/ui_to_be/services/network_speed_service.dart';
+import 'package:hiddify/ui_to_be/theme/app_colors.dart';
+import 'package:hiddify/ui_to_be/theme/app_text_styles.dart';
 
 /// Maximum number of data-points visible in the graph (60 s window @ 1 Hz).
 const _maxDataPoints = 60;
@@ -77,7 +77,7 @@ class _SpeedIndicatorState extends State<SpeedIndicator> {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) _start();
           });
-        } else if (!isConnected && _wasConnected) {
+        } else if (vpn.status == ConnectionStatus.disconnected && _wasConnected) {
           _wasConnected = false;
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) _stop();
@@ -238,10 +238,9 @@ class _SpeedGraph extends StatelessWidget {
                 maxY: maxY,
                 clipData: const FlClipData.all(),
                 gridData: FlGridData(
-                  show: true,
                   drawVerticalLine: false,
                   horizontalInterval: maxY / 4,
-                  getDrawingHorizontalLine: (_) => FlLine(color: AppColors.gridLine, strokeWidth: 0.5),
+                  getDrawingHorizontalLine: (_) => const FlLine(color: AppColors.gridLine, strokeWidth: 0.5),
                 ),
                 titlesData: FlTitlesData(
                   leftTitles: AxisTitles(
@@ -306,7 +305,6 @@ class _SpeedGraph extends StatelessWidget {
                   ),
                 ],
               ),
-              duration: const Duration(milliseconds: 150),
             )
           : Center(
               child: Text(

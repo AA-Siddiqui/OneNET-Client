@@ -102,9 +102,10 @@ class CurrentAppBridge {
     await _readContainer.read(connectionNotifierProvider.notifier).toggleConnection();
   }
 
-  static Future<void> applyProvisionedConfig(String configContent) async {
+  static Future<void> applyProvisionedConfig(String configContent, {String? preferredProfileName}) async {
     try {
       final normalized = configContent.trim();
+      final normalizedPreferredProfileName = preferredProfileName?.trim() ?? '';
       if (normalized.isEmpty) {
         throw const CurrentAppBridgeException('VPN configuration is empty.');
       }
@@ -113,8 +114,17 @@ class CurrentAppBridge {
       final activeProfile = await _readContainer.read(activeProfileProvider.future);
 
       final result = activeProfile == null
-          ? await profileRepository.addLocal(normalized).run()
-          : await profileRepository.offlineUpdate(activeProfile, normalized).run();
+          ? await profileRepository
+                .addLocal(
+                  normalized,
+                  userOverride: normalizedPreferredProfileName.isEmpty
+                      ? null
+                      : UserOverride(name: normalizedPreferredProfileName),
+                )
+                .run()
+          : await profileRepository
+                .offlineUpdate(_applyProfileNameOverride(activeProfile, normalizedPreferredProfileName), normalized)
+                .run();
 
       result.match(
         (failure) => throw CurrentAppBridgeException('Failed to apply VPN configuration: $failure'),
@@ -143,7 +153,14 @@ class CurrentAppBridge {
     final controller = StreamController<ConnectionStatus>();
     final subscription = _readContainer.listen<AsyncValue<core_connection.ConnectionStatus>>(
       connectionNotifierProvider,
-      (previous, next) => controller.add(_mapConnectionStatus(next.valueOrNull)),
+      (previous, next) {
+        final status = next.valueOrNull;
+        if (status == null) {
+          return;
+        }
+
+        controller.add(_mapConnectionStatus(status));
+      },
       fireImmediately: true,
     );
 
@@ -158,7 +175,10 @@ class CurrentAppBridge {
   static Stream<SystemInfo> watchStats() {
     final controller = StreamController<SystemInfo>();
     final subscription = _readContainer.listen<AsyncValue<SystemInfo>>(statsNotifierProvider, (previous, next) {
-      controller.add(next.valueOrNull ?? SystemInfo.create());
+      final stats = next.valueOrNull;
+      if (stats != null) {
+        controller.add(stats);
+      }
     }, fireImmediately: true);
 
     controller.onCancel = () {
@@ -179,6 +199,26 @@ class CurrentAppBridge {
     final nodeId = profile.id.length >= 8 ? profile.id.substring(0, 8).toUpperCase() : profile.id.toUpperCase();
 
     return ServerModel(id: profile.id, name: profile.name, region: region, nodeId: nodeId, publicIp: host);
+  }
+
+  static ProfileEntity _applyProfileNameOverride(ProfileEntity profile, String preferredProfileName) {
+    final normalizedName = preferredProfileName.trim();
+    if (normalizedName.isEmpty) {
+      return profile;
+    }
+
+    final existingOverride = profile.userOverride;
+    final overrideName = existingOverride?.name?.trim() ?? '';
+    if (overrideName == normalizedName) {
+      return profile;
+    }
+
+    final mergedOverride = (existingOverride ?? const UserOverride()).copyWith(name: normalizedName);
+
+    return switch (profile) {
+      RemoteProfileEntity() => profile.copyWith(userOverride: mergedOverride),
+      LocalProfileEntity() => profile.copyWith(userOverride: mergedOverride),
+    };
   }
 
   static ProfileEntity? _findBestProfileForServer(ServerModel server, List<ProfileEntity> profiles) {

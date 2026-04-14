@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:hiddify/ui_to_be/enums/connection_status.dart';
 import 'package:hiddify/ui_to_be/models/server_model.dart';
 import 'package:hiddify/ui_to_be/services/current_app_bridge.dart';
+import 'package:hiddify/ui_to_be/services/storage_service.dart';
 import 'package:hiddify/ui_to_be/services/vpn_service.dart';
 import 'package:hiddify/ui_to_be/utils/vpn_trace.dart';
 
@@ -39,8 +40,11 @@ class VpnProvider extends ChangeNotifier {
         return;
       }
       _selectedServer = _resolveDisplayServer(server);
+      _persistSelectedServer(_selectedServer);
       notifyListeners();
     });
+
+    unawaited(_restorePersistedSessionState());
   }
 
   ConnectionStatus get status => _status;
@@ -80,6 +84,7 @@ class VpnProvider extends ChangeNotifier {
     _errorMessage = null;
     _needsVpnPermission = false;
     _connectedServerDisplayFallback = _selectedServer;
+    _persistSelectedServer(_selectedServer);
     notifyListeners();
 
     try {
@@ -109,7 +114,11 @@ class VpnProvider extends ChangeNotifier {
       _lastTraceId = provisioned.traceId;
       _assignedIp = provisioned.assignedIp;
 
-      await VpnService.applyProvisionedConfig(provisioned.config, fallbackContent: provisioned.serverConfig);
+      await VpnService.applyProvisionedConfig(
+        provisioned.config,
+        fallbackContent: provisioned.serverConfig,
+        preferredProfileName: _selectedServer.name,
+      );
 
       await CurrentAppBridge.connect();
       final refreshed = CurrentAppBridge.currentConnectionStatus();
@@ -149,6 +158,7 @@ class VpnProvider extends ChangeNotifier {
       _errorMessage = null;
       _needsVpnPermission = false;
       _connectedServerDisplayFallback = null;
+      unawaited(StorageService.clearVpnConnectedSince());
       notifyListeners();
     }
   }
@@ -172,8 +182,11 @@ class VpnProvider extends ChangeNotifier {
       if (activeServer != null) {
         _selectedServer = _resolveDisplayServer(activeServer);
       } else if (_servers.isNotEmpty) {
-        _selectedServer = _servers.first;
+        final fallbackServer = _connectedServerDisplayFallback;
+        _selectedServer = (fallbackServer == null ? null : _findMatchingServer(fallbackServer)) ?? _servers.first;
       }
+
+      _persistSelectedServer(_selectedServer);
 
       _hasLoadedServers = true;
     } on VpnException catch (error) {
@@ -204,8 +217,37 @@ class VpnProvider extends ChangeNotifier {
     }
 
     _selectedServer = matched;
+    _persistSelectedServer(matched);
     notifyListeners();
     unawaited(CurrentAppBridge.selectServerByNode(matched));
+  }
+
+  Future<void> _restorePersistedSessionState() async {
+    final persistedServer = await StorageService.getLastSelectedVpnServer();
+    final persistedConnectedSince = await StorageService.getVpnConnectedSince();
+
+    var hasChanges = false;
+
+    if (persistedServer != null) {
+      _connectedServerDisplayFallback ??= persistedServer;
+      if (!_matchesServer(_selectedServer, persistedServer)) {
+        _selectedServer = persistedServer;
+        hasChanges = true;
+      }
+    }
+
+    if (_status == ConnectionStatus.connected) {
+      if (persistedConnectedSince != null) {
+        _connectedSince = persistedConnectedSince;
+        hasChanges = true;
+      } else if (_connectedSince != null) {
+        _persistConnectedSince(_connectedSince!);
+      }
+    }
+
+    if (hasChanges) {
+      notifyListeners();
+    }
   }
 
   ServerModel _resolveDisplayServer(ServerModel activeServer) {
@@ -286,23 +328,44 @@ class VpnProvider extends ChangeNotifier {
     return leftNode.isNotEmpty && rightNode.isNotEmpty && leftNode == rightNode;
   }
 
+  ServerModel? _findMatchingServer(ServerModel target) {
+    for (final server in _servers) {
+      if (_matchesServer(server, target)) {
+        return server;
+      }
+    }
+    return null;
+  }
+
   void _applyStatus(ConnectionStatus status) {
-    final wasConnected = _status == ConnectionStatus.connected;
     _status = status;
 
     if (status == ConnectionStatus.connected) {
       _connectedSince ??= DateTime.now();
+      if (_connectedSince != null) {
+        _persistConnectedSince(_connectedSince!);
+      }
       _errorMessage = null;
       _needsVpnPermission = false;
       _startDurationTimer();
-    } else if (wasConnected || status == ConnectionStatus.disconnected) {
+    } else if (status == ConnectionStatus.disconnected) {
       _connectedSince = null;
       _assignedIp = null;
       _durationTimer?.cancel();
       _connectedServerDisplayFallback = null;
+      unawaited(StorageService.clearVpnConnectedSince());
     }
 
     notifyListeners();
+  }
+
+  void _persistConnectedSince(DateTime connectedSince) {
+    unawaited(StorageService.saveVpnConnectedSince(connectedSince));
+  }
+
+  void _persistSelectedServer(ServerModel server) {
+    _connectedServerDisplayFallback = server;
+    unawaited(StorageService.saveLastSelectedVpnServer(server));
   }
 
   void _startDurationTimer() {
