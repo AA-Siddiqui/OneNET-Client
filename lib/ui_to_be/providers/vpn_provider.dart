@@ -12,6 +12,7 @@ import 'package:hiddify/ui_to_be/utils/vpn_trace.dart';
 class VpnProvider extends ChangeNotifier {
   ConnectionStatus _status = ConnectionStatus.disconnected;
   DateTime? _connectedSince;
+  DateTime? _persistedConnectedSince;
   String? _assignedIp;
   String? _errorMessage;
   String? _nodesErrorMessage;
@@ -81,10 +82,13 @@ class VpnProvider extends ChangeNotifier {
         : VpnTraceLogger.newTraceId();
     _lastTraceId = resolvedTraceId;
     _status = ConnectionStatus.connecting;
+    _connectedSince = null;
+    _persistedConnectedSince = null;
     _errorMessage = null;
     _needsVpnPermission = false;
     _connectedServerDisplayFallback = _selectedServer;
     _persistSelectedServer(_selectedServer);
+    unawaited(StorageService.clearVpnConnectedSince());
     notifyListeners();
 
     try {
@@ -154,6 +158,7 @@ class VpnProvider extends ChangeNotifier {
     } finally {
       _status = ConnectionStatus.disconnected;
       _connectedSince = null;
+      _persistedConnectedSince = null;
       _assignedIp = null;
       _errorMessage = null;
       _needsVpnPermission = false;
@@ -225,6 +230,7 @@ class VpnProvider extends ChangeNotifier {
   Future<void> _restorePersistedSessionState() async {
     final persistedServer = await StorageService.getLastSelectedVpnServer();
     final persistedConnectedSince = await StorageService.getVpnConnectedSince();
+    _persistedConnectedSince = persistedConnectedSince;
 
     var hasChanges = false;
 
@@ -338,10 +344,11 @@ class VpnProvider extends ChangeNotifier {
   }
 
   void _applyStatus(ConnectionStatus status) {
+    final previousStatus = _status;
     _status = status;
 
     if (status == ConnectionStatus.connected) {
-      _connectedSince ??= DateTime.now();
+      _connectedSince ??= _persistedConnectedSince ?? DateTime.now();
       if (_connectedSince != null) {
         _persistConnectedSince(_connectedSince!);
       }
@@ -349,11 +356,17 @@ class VpnProvider extends ChangeNotifier {
       _needsVpnPermission = false;
       _startDurationTimer();
     } else if (status == ConnectionStatus.disconnected) {
-      _connectedSince = null;
       _assignedIp = null;
       _durationTimer?.cancel();
       _connectedServerDisplayFallback = null;
-      unawaited(StorageService.clearVpnConnectedSince());
+
+      // Ignore duplicate disconnected events so a persisted connected timestamp
+      // can still be recovered if the app resumes and quickly reports connected.
+      if (previousStatus != ConnectionStatus.disconnected) {
+        _connectedSince = null;
+        _persistedConnectedSince = null;
+        unawaited(StorageService.clearVpnConnectedSince());
+      }
     }
 
     notifyListeners();
