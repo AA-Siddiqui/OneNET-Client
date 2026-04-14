@@ -9,9 +9,7 @@ class BrandHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Image.asset('assets/ui-to-be/assets/images/logo.png', width: 80, height: 80, fit: BoxFit.contain),
-        const SizedBox(height: 8),
-        Text('OneNET', style: AppTextStyles.headingAccent.copyWith(fontSize: 40)),
+        Image.asset('assets/ui-to-be/assets/images/logo.png', width: 120, height: 120, fit: BoxFit.contain),
         const SizedBox(height: 16),
         Text('// AUTHENTICATE', style: AppTextStyles.monoSmall.copyWith(color: AppColors.textDim)),
       ],
