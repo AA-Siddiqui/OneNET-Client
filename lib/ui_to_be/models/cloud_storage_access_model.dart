@@ -20,18 +20,19 @@ class CloudStorageAccessModel {
   });
 
   factory CloudStorageAccessModel.fromSupabase(Map<String, dynamic> json) {
-    final hasAccess = json['has_storage_access'] == true;
-    final quota = _asInt(json['quota_bytes']);
+    final hasAccess = (json['has_storage_access'] == true) || (json['hasStorageAccess'] == true);
+    final quota = _asInt(json['quota_bytes'] ?? json['quotaBytes']);
+    final used = _asInt(json['used_bytes'] ?? json['usedBytes']);
 
     return CloudStorageAccessModel(
       hasStorageAccess: hasAccess,
       isPro: json['is_pro'] == true || hasAccess,
       quotaBytes: quota,
-      usedBytes: 0,
+      usedBytes: used,
       message: json['message'] as String? ?? 'Pro plan is required for cloud storage',
-      planTier: json['plan_tier'] as String?,
-      planName: json['plan_name'] as String?,
-      subscriptionStatus: json['subscription_status'] as String?,
+      planTier: (json['plan_tier'] ?? json['planTier']) as String?,
+      planName: (json['plan_name'] ?? json['planName']) as String?,
+      subscriptionStatus: (json['subscription_status'] ?? json['subscriptionStatus']) as String?,
     );
   }
 

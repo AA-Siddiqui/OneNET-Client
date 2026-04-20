@@ -27,7 +27,7 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  bool _isOneMailSelected = false;
+  DashboardSuiteTab _selectedTab = DashboardSuiteTab.oneNet;
 
   @override
   Widget build(BuildContext context) {
@@ -40,17 +40,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Column(
               children: [
                 DashboardHeader(
-                  isOneMailSelected: _isOneMailSelected,
-                  onTabChanged: (isOneMail) {
-                    setState(() => _isOneMailSelected = isOneMail);
+                  selectedTab: _selectedTab,
+                  onTabChanged: (tab) {
+                    setState(() => _selectedTab = tab);
                   },
                 ),
-                Expanded(child: _isOneMailSelected ? OneMailPanel(isAdmin: isAdmin) : _buildOneNetPanel(context)),
+                Expanded(
+                  child: switch (_selectedTab) {
+                    DashboardSuiteTab.oneNet => _buildOneNetPanel(context),
+                    DashboardSuiteTab.oneStorage => _buildStoragePanel(),
+                    DashboardSuiteTab.oneMail => OneMailPanel(isAdmin: isAdmin),
+                  },
+                ),
               ],
             ),
 
             // Floating settings button
-            if (!_isOneMailSelected)
+            if (_selectedTab == DashboardSuiteTab.oneNet)
               Positioned(
                 bottom: 32,
                 left: 0,
@@ -206,10 +212,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const ServerSelector().animate().fadeIn(duration: 400.ms, delay: 300.ms),
           const SizedBox(height: 16),
 
-          // Cloud Storage panel — visible to all plans, functional on Pro
-          const CloudStoragePanel().animate().fadeIn(duration: 400.ms, delay: 350.ms),
-          const SizedBox(height: 16),
-
           // Cloud Gaming button — only for Cloud Gaming plan
           Consumer<UserProvider>(
             builder: (context, user, _) {
@@ -224,6 +226,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ).animate().fadeIn(duration: 400.ms, delay: 400.ms);
             },
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStoragePanel() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('ONE STORAGE', style: AppTextStyles.heading2.copyWith(letterSpacing: 1.4)),
+          const SizedBox(height: 6),
+          Text(
+            'Cloud files workspace powered by your plan permissions.',
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textDim),
+          ),
+          const SizedBox(height: 14),
+          const CloudStoragePanel(),
         ],
       ),
     );

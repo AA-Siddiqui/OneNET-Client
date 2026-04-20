@@ -25,13 +25,7 @@ sealed class AppConstants {
   static const String logoutEndpoint = '$supabaseUrl/functions/v1/logout';
   static const String vpnConnectEndpoint = '$supabaseUrl/functions/v1/vpn_connect';
   static const String getProfileEndpoint = '$supabaseUrl/functions/v1/get_profile';
-  static const String storageAccessEndpoint = '$supabaseUrl/functions/v1/storage-access';
-
-  // VPS cloud storage gateway
-  static const String storageGatewayUrl = String.fromEnvironment(
-    'ONENET_STORAGE_URL',
-    defaultValue: 'http://localhost:8085',
-  );
+  static const String storageGatewayEndpoint = '$supabaseUrl/functions/v1/storage-gateway';
 
   static const String vpnNodesEndpoint =
       '$supabaseUrl/rest/v1/vpn_nodes?select=id,hostname,public_ip,region,is_online&is_online=eq.true&order=created_at.asc';

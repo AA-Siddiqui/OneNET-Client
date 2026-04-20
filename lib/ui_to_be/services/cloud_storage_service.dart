@@ -13,14 +13,16 @@ class DownloadedCloudFile {
 }
 
 class CloudStorageService {
+  static Map<String, String> _supabaseHeaders(String token) => {
+    'x-auth-token': 'Bearer $token',
+    'apikey': AppConstants.supabaseAnonKey,
+    'Authorization': 'Bearer ${AppConstants.supabaseAnonKey}',
+  };
+
   static Future<CloudStorageAccessModel> fetchAccess(String token) async {
     final response = await http.get(
-      Uri.parse(AppConstants.storageAccessEndpoint),
-      headers: {
-        'x-auth-token': 'Bearer $token',
-        'apikey': AppConstants.supabaseAnonKey,
-        'Authorization': 'Bearer ${AppConstants.supabaseAnonKey}',
-      },
+      Uri.parse('${AppConstants.storageGatewayEndpoint}?action=access'),
+      headers: _supabaseHeaders(token),
     );
 
     final body = _decodeBody(response);
@@ -38,8 +40,8 @@ class CloudStorageService {
 
   static Future<CloudStorageListResponse> fetchFiles(String token) async {
     final response = await http.get(
-      Uri.parse('${AppConstants.storageGatewayUrl}/v1/storage/files'),
-      headers: {'x-auth-token': 'Bearer $token'},
+      Uri.parse('${AppConstants.storageGatewayEndpoint}?action=files'),
+      headers: _supabaseHeaders(token),
     );
 
     final body = _decodeBody(response);
@@ -60,8 +62,8 @@ class CloudStorageService {
   }
 
   static Future<void> uploadFile({required String token, required String fileName, required List<int> bytes}) async {
-    final request = http.MultipartRequest('POST', Uri.parse('${AppConstants.storageGatewayUrl}/v1/storage/upload'));
-    request.headers['x-auth-token'] = 'Bearer $token';
+    final request = http.MultipartRequest('POST', Uri.parse('${AppConstants.storageGatewayEndpoint}?action=upload'));
+    request.headers.addAll(_supabaseHeaders(token));
     request.files.add(http.MultipartFile.fromBytes('file', bytes, filename: fileName));
 
     final streamedResponse = await request.send();
@@ -83,8 +85,8 @@ class CloudStorageService {
 
   static Future<DownloadedCloudFile> downloadFile({required String token, required String fileKey}) async {
     final response = await http.get(
-      Uri.parse('${AppConstants.storageGatewayUrl}/v1/storage/download?key=${Uri.encodeQueryComponent(fileKey)}'),
-      headers: {'x-auth-token': 'Bearer $token'},
+      Uri.parse('${AppConstants.storageGatewayEndpoint}?action=download&key=${Uri.encodeQueryComponent(fileKey)}'),
+      headers: _supabaseHeaders(token),
     );
 
     if (response.statusCode == 401) {
@@ -109,8 +111,8 @@ class CloudStorageService {
 
   static Future<void> deleteFile({required String token, required String fileKey}) async {
     final response = await http.delete(
-      Uri.parse('${AppConstants.storageGatewayUrl}/v1/storage/files?key=${Uri.encodeQueryComponent(fileKey)}'),
-      headers: {'x-auth-token': 'Bearer $token'},
+      Uri.parse('${AppConstants.storageGatewayEndpoint}?action=delete&key=${Uri.encodeQueryComponent(fileKey)}'),
+      headers: _supabaseHeaders(token),
     );
 
     final body = _decodeBody(response);

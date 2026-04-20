@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:hiddify/ui_to_be/providers/user_provider.dart';
 import 'package:hiddify/ui_to_be/theme/app_colors.dart';
 import 'package:hiddify/ui_to_be/theme/app_text_styles.dart';
 import 'package:hiddify/ui_to_be/widgets/common/status_badge.dart';
+import 'package:provider/provider.dart';
 
 const Color _oneMailBackground = Color(0xFFFFFFFF);
 const Color _oneMailSurface = Color(0xFFF5F5F5);
@@ -13,18 +13,20 @@ const Color _oneMailDark = Color(0xFF4A4A4A);
 const Color _oneMailMuted = Color(0xFF9A9A9A);
 const Color _oneMailBlue = Color(0xFF3B82F6);
 
-class DashboardHeader extends StatelessWidget {
-  final bool isOneMailSelected;
-  final ValueChanged<bool> onTabChanged;
+enum DashboardSuiteTab { oneNet, oneStorage, oneMail }
 
-  const DashboardHeader({super.key, required this.isOneMailSelected, required this.onTabChanged});
+class DashboardHeader extends StatelessWidget {
+  final DashboardSuiteTab selectedTab;
+  final ValueChanged<DashboardSuiteTab> onTabChanged;
+
+  const DashboardHeader({super.key, required this.selectedTab, required this.onTabChanged});
 
   @override
   Widget build(BuildContext context) {
     return Consumer<UserProvider>(
       builder: (context, user, _) {
         final isAdmin = user.user?.isAdmin ?? false;
-        final bool oneMailTheme = isOneMailSelected;
+        final bool oneMailTheme = selectedTab == DashboardSuiteTab.oneMail;
         final Color headerBackground = oneMailTheme ? _oneMailBackground : AppColors.black.withValues(alpha: 0.95);
         final Color headerBorder = oneMailTheme ? _oneMailBorder : AppColors.border;
         final Color avatarBackground = oneMailTheme ? _oneMailSurface : AppColors.accentGlow;
@@ -70,7 +72,7 @@ class DashboardHeader extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 4),
-                        if (isOneMailSelected)
+                        if (selectedTab == DashboardSuiteTab.oneMail)
                           StatusBadge(
                             label: isAdmin ? 'ADMIN PREVIEW' : 'EARLY SIGNUP',
                             color: isAdmin ? AppColors.gold : _oneMailPrimary,
@@ -108,20 +110,30 @@ class DashboardHeader extends StatelessWidget {
                       Expanded(
                         child: _SuiteTabButton(
                           label: 'OneNET',
-                          isSelected: !isOneMailSelected,
+                          isSelected: selectedTab == DashboardSuiteTab.oneNet,
                           activeColor: oneMailTheme ? _oneMailBlue : AppColors.accentBright,
                           inactiveColor: tabInactive,
-                          onTap: () => onTabChanged(false),
+                          onTap: () => onTabChanged(DashboardSuiteTab.oneNet),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: _SuiteTabButton(
+                          label: 'OneSTORAGE',
+                          isSelected: selectedTab == DashboardSuiteTab.oneStorage,
+                          activeColor: oneMailTheme ? _oneMailBlue : AppColors.success,
+                          inactiveColor: tabInactive,
+                          onTap: () => onTabChanged(DashboardSuiteTab.oneStorage),
                         ),
                       ),
                       const SizedBox(width: 6),
                       Expanded(
                         child: _SuiteTabButton(
                           label: 'OneMAIL',
-                          isSelected: isOneMailSelected,
+                          isSelected: selectedTab == DashboardSuiteTab.oneMail,
                           activeColor: oneMailTheme ? _oneMailPrimary : AppColors.gold,
                           inactiveColor: tabInactive,
-                          onTap: () => onTabChanged(true),
+                          onTap: () => onTabChanged(DashboardSuiteTab.oneMail),
                         ),
                       ),
                     ],
