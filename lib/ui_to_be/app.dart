@@ -4,6 +4,7 @@ import 'package:hiddify/features/log/overview/logs_page.dart';
 import 'package:hiddify/features/per_app_proxy/overview/per_app_proxy_page.dart';
 import 'package:hiddify/ui_to_be/config/routes.dart';
 import 'package:hiddify/ui_to_be/providers/auth_provider.dart';
+import 'package:hiddify/ui_to_be/providers/cloud_storage_provider.dart';
 import 'package:hiddify/ui_to_be/providers/game_session_provider.dart';
 import 'package:hiddify/ui_to_be/providers/user_provider.dart';
 import 'package:hiddify/ui_to_be/providers/vpn_provider.dart';
@@ -31,6 +32,7 @@ class OneNetApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => VpnProvider()),
+        ChangeNotifierProvider(create: (_) => CloudStorageProvider()),
         ChangeNotifierProvider(create: (_) => GameSessionProvider()),
       ],
       child: MaterialApp(

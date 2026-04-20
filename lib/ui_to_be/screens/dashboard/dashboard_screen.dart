@@ -1,22 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:provider/provider.dart';
 import 'package:hiddify/ui_to_be/config/routes.dart';
 import 'package:hiddify/ui_to_be/enums/connection_status.dart';
 import 'package:hiddify/ui_to_be/providers/auth_provider.dart';
 import 'package:hiddify/ui_to_be/providers/user_provider.dart';
 import 'package:hiddify/ui_to_be/providers/vpn_provider.dart';
-import 'package:hiddify/ui_to_be/theme/app_colors.dart';
-import 'package:hiddify/ui_to_be/theme/app_text_styles.dart';
-import 'package:hiddify/ui_to_be/utils/formatters.dart';
-import 'package:hiddify/ui_to_be/utils/vpn_trace.dart';
-import 'package:hiddify/ui_to_be/widgets/common/gradient_background.dart';
 import 'package:hiddify/ui_to_be/screens/dashboard/widgets/cloud_gaming_button.dart';
+import 'package:hiddify/ui_to_be/screens/dashboard/widgets/cloud_storage_panel.dart';
 import 'package:hiddify/ui_to_be/screens/dashboard/widgets/dashboard_header.dart';
 import 'package:hiddify/ui_to_be/screens/dashboard/widgets/one_mail_panel.dart';
 import 'package:hiddify/ui_to_be/screens/dashboard/widgets/server_selector.dart';
 import 'package:hiddify/ui_to_be/screens/dashboard/widgets/speed_indicator.dart';
 import 'package:hiddify/ui_to_be/screens/dashboard/widgets/vpn_toggle_button.dart';
+import 'package:hiddify/ui_to_be/theme/app_colors.dart';
+import 'package:hiddify/ui_to_be/theme/app_text_styles.dart';
+import 'package:hiddify/ui_to_be/utils/formatters.dart';
+import 'package:hiddify/ui_to_be/utils/vpn_trace.dart';
+import 'package:hiddify/ui_to_be/widgets/common/gradient_background.dart';
+import 'package:provider/provider.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -203,6 +204,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
           // Server selector
           const ServerSelector().animate().fadeIn(duration: 400.ms, delay: 300.ms),
+          const SizedBox(height: 16),
+
+          // Cloud Storage panel — visible to all plans, functional on Pro
+          const CloudStoragePanel().animate().fadeIn(duration: 400.ms, delay: 350.ms),
           const SizedBox(height: 16),
 
           // Cloud Gaming button — only for Cloud Gaming plan
