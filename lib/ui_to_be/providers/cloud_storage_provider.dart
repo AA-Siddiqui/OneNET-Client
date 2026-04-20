@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hiddify/ui_to_be/models/cloud_storage_access_model.dart';
 import 'package:hiddify/ui_to_be/models/cloud_storage_file_model.dart';
 import 'package:hiddify/ui_to_be/services/cloud_storage_service.dart';
+import 'package:hiddify/utils/platform_utils.dart';
 import 'package:share_plus/share_plus.dart';
 
 class CloudStorageProvider extends ChangeNotifier {
@@ -186,7 +189,7 @@ class CloudStorageProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> downloadAndShare(String? token, CloudStorageFileModel entry) async {
+  Future<void> downloadToLocal(String? token, CloudStorageFileModel entry) async {
     final normalized = token?.trim();
     if (normalized == null || normalized.isEmpty || _isBusy) {
       return;
@@ -199,16 +202,27 @@ class CloudStorageProvider extends ChangeNotifier {
 
     try {
       await _ensureProAccess(normalized);
-      final downloaded = entry.isFolder
-          ? await CloudStorageService.downloadFolderAsZip(token: normalized, folderPath: entry.key)
-          : await CloudStorageService.downloadFile(token: normalized, fileKey: entry.key);
-      final xFile = XFile.fromData(
-        Uint8List.fromList(downloaded.bytes),
-        name: downloaded.fileName,
-        mimeType: downloaded.contentType,
-      );
-      await Share.shareXFiles([xFile], text: 'Downloaded from OneNET cloud storage');
-      _statusMessage = 'Downloaded ${downloaded.fileName}';
+      final downloaded = await _downloadEntry(normalized, entry);
+      final bytes = Uint8List.fromList(downloaded.bytes);
+
+      final outputFile = await FilePicker.platform.saveFile(fileName: downloaded.fileName, bytes: bytes);
+
+      if (outputFile == null) {
+        _statusMessage = 'Download cancelled.';
+        return;
+      }
+
+      if (PlatformUtils.isDesktop) {
+        final file = File(outputFile);
+        if (!await file.exists()) {
+          await file.parent.create(recursive: true);
+        }
+        await file.writeAsBytes(bytes);
+      }
+
+      _statusMessage = outputFile.trim().isEmpty
+          ? 'Saved ${downloaded.fileName} locally.'
+          : 'Saved ${downloaded.fileName} to $outputFile';
     } on CloudStorageException catch (error) {
       _errorMessage = error.message;
     } catch (_) {
@@ -217,6 +231,46 @@ class CloudStorageProvider extends ChangeNotifier {
       _isBusy = false;
       notifyListeners();
     }
+  }
+
+  Future<void> shareEntry(String? token, CloudStorageFileModel entry) async {
+    final normalized = token?.trim();
+    if (normalized == null || normalized.isEmpty || _isBusy) {
+      return;
+    }
+
+    _isBusy = true;
+    _errorMessage = null;
+    _statusMessage = null;
+    notifyListeners();
+
+    try {
+      await _ensureProAccess(normalized);
+      final downloaded = await _downloadEntry(normalized, entry);
+      final xFile = XFile.fromData(
+        Uint8List.fromList(downloaded.bytes),
+        name: downloaded.fileName,
+        mimeType: downloaded.contentType,
+      );
+      final result = await Share.shareXFiles([xFile], text: 'Shared from OneNET cloud storage');
+      _statusMessage = result.status == ShareResultStatus.dismissed
+          ? 'Share cancelled.'
+          : 'Shared ${downloaded.fileName}';
+    } on CloudStorageException catch (error) {
+      _errorMessage = error.message;
+    } catch (_) {
+      _errorMessage = 'Share failed. Please try again.';
+    } finally {
+      _isBusy = false;
+      notifyListeners();
+    }
+  }
+
+  Future<DownloadedCloudFile> _downloadEntry(String token, CloudStorageFileModel entry) {
+    if (entry.isFolder) {
+      return CloudStorageService.downloadFolderAsZip(token: token, folderPath: entry.key);
+    }
+    return CloudStorageService.downloadFile(token: token, fileKey: entry.key);
   }
 
   Future<void> deleteEntry(String? token, CloudStorageFileModel entry) async {

@@ -11,7 +11,7 @@ import 'package:hiddify/ui_to_be/widgets/common/glow_container.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
-enum _EntryAction { open, download, copy, move, delete }
+enum _EntryAction { open, download, share, copy, move, delete }
 
 class _StorageBreadcrumb {
   final String label;
@@ -201,51 +201,27 @@ class _CloudStoragePanelState extends State<CloudStoragePanel> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: hasStorage ? AppColors.accentGlow : AppColors.goldDim,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Icon(
-                      LucideIcons.cloud,
-                      color: hasStorage ? AppColors.accentBright : AppColors.gold,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'CLOUD STORAGE',
-                          style: AppTextStyles.heading3.copyWith(
-                            color: hasStorage ? AppColors.accentBright : AppColors.gold,
-                          ),
-                        ),
-                        Text(
-                          hasStorage ? 'Upload and download game files' : 'Visible on all plans, active on Pro',
-                          style: AppTextStyles.bodySmall,
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: storage.isLoading || storage.isBusy ? null : () => storage.refresh(token, force: true),
-                    icon: Icon(
-                      LucideIcons.refreshCcw,
-                      size: 18,
-                      color: storage.isLoading ? AppColors.textDim : AppColors.accentBright,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
               _StorageUsageBar(access: access),
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerRight,
+                child: OutlinedButton.icon(
+                  onPressed: storage.isLoading || storage.isBusy ? null : () => storage.refresh(token, force: true),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.accentBright,
+                    side: BorderSide(color: AppColors.accent.withValues(alpha: 0.5)),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                  icon: storage.isLoading
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.accentBright),
+                        )
+                      : const Icon(LucideIcons.refreshCcw, size: 16),
+                  label: Text('Refresh', style: AppTextStyles.mono.copyWith(color: AppColors.accentBright)),
+                ),
+              ),
               const SizedBox(height: 12),
               if (!hasStorage)
                 _ProRequiredBanner(
@@ -282,7 +258,8 @@ class _CloudStoragePanelState extends State<CloudStoragePanel> {
                 enabled: hasStorage && !storage.isLoading,
                 busy: storage.isBusy,
                 onOpenFolder: (entry) => storage.openFolder(token, entry),
-                onDownload: (entry) => storage.downloadAndShare(token, entry),
+                onDownload: (entry) => storage.downloadToLocal(token, entry),
+                onShare: (entry) => storage.shareEntry(token, entry),
                 onDelete: (entry) async {
                   final confirmed = await _confirmDelete(entry);
                   if (!confirmed) {
@@ -336,12 +313,25 @@ class _CloudStoragePanelState extends State<CloudStoragePanel> {
   }
 }
 
-class _StoragePathBar extends StatelessWidget {
+class _StoragePathBar extends StatefulWidget {
   final List<_StorageBreadcrumb> breadcrumbs;
   final Future<void> Function(String path) onNavigate;
   final bool busy;
 
   const _StoragePathBar({required this.breadcrumbs, required this.onNavigate, required this.busy});
+
+  @override
+  State<_StoragePathBar> createState() => _StoragePathBarState();
+}
+
+class _StoragePathBarState extends State<_StoragePathBar> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -353,26 +343,33 @@ class _StoragePathBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
       ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            for (var index = 0; index < breadcrumbs.length; index += 1) ...[
-              TextButton(
-                onPressed: busy ? null : () => onNavigate(breadcrumbs[index].path),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.accentBright,
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      child: Scrollbar(
+        controller: _scrollController,
+        thumbVisibility: true,
+        trackVisibility: true,
+        interactive: true,
+        child: SingleChildScrollView(
+          controller: _scrollController,
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (var index = 0; index < widget.breadcrumbs.length; index += 1) ...[
+                TextButton(
+                  onPressed: widget.busy ? null : () => widget.onNavigate(widget.breadcrumbs[index].path),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.accentBright,
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  ),
+                  child: Text(
+                    widget.breadcrumbs[index].label,
+                    style: AppTextStyles.monoSmall.copyWith(color: AppColors.accentBright),
+                  ),
                 ),
-                child: Text(
-                  breadcrumbs[index].label,
-                  style: AppTextStyles.monoSmall.copyWith(color: AppColors.accentBright),
-                ),
-              ),
-              if (index < breadcrumbs.length - 1)
-                Text('/', style: AppTextStyles.monoSmall.copyWith(color: AppColors.textDim)),
+                if (index < widget.breadcrumbs.length - 1)
+                  Text('/', style: AppTextStyles.monoSmall.copyWith(color: AppColors.textDim)),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -521,6 +518,7 @@ class _StorageFilesList extends StatelessWidget {
   final bool busy;
   final Future<void> Function(CloudStorageFileModel file) onOpenFolder;
   final Future<void> Function(CloudStorageFileModel file) onDownload;
+  final Future<void> Function(CloudStorageFileModel file) onShare;
   final Future<void> Function(CloudStorageFileModel file) onDelete;
   final Future<void> Function(CloudStorageFileModel file) onCopy;
   final Future<void> Function(CloudStorageFileModel file) onMove;
@@ -531,6 +529,7 @@ class _StorageFilesList extends StatelessWidget {
     required this.busy,
     required this.onOpenFolder,
     required this.onDownload,
+    required this.onShare,
     required this.onDelete,
     required this.onCopy,
     required this.onMove,
@@ -559,6 +558,7 @@ class _StorageFilesList extends StatelessWidget {
         final details = file.isFolder
             ? 'Folder${_lastUpdated(file.lastModified)}'
             : '${_formatBytes(file.sizeBytes)}${_lastUpdated(file.lastModified)}';
+        const actionButtonConstraints = BoxConstraints.tightFor(width: 32, height: 32);
 
         return InkWell(
           onTap: enabled && !busy && file.isFolder ? () => onOpenFolder(file) : null,
@@ -588,57 +588,62 @@ class _StorageFilesList extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (file.isFolder)
-                  IconButton(
-                    onPressed: enabled && !busy ? () => onOpenFolder(file) : null,
-                    icon: const Icon(LucideIcons.folderOpen, size: 16),
-                    color: AppColors.gold,
-                    tooltip: 'Open Folder',
-                  ),
                 IconButton(
                   onPressed: enabled && !busy ? () => onDownload(file) : null,
                   icon: Icon(file.isFolder ? LucideIcons.archive : LucideIcons.download, size: 16),
+                  constraints: actionButtonConstraints,
+                  padding: EdgeInsets.zero,
+                  visualDensity: VisualDensity.compact,
                   color: AppColors.accentBright,
-                  tooltip: file.isFolder ? 'Download ZIP' : 'Download',
+                  tooltip: file.isFolder ? 'Save ZIP locally' : 'Save locally',
                 ),
-                PopupMenuButton<_EntryAction>(
-                  enabled: enabled && !busy,
-                  tooltip: 'More actions',
-                  onSelected: (action) async {
-                    switch (action) {
-                      case _EntryAction.open:
-                        await onOpenFolder(file);
-                      case _EntryAction.download:
-                        await onDownload(file);
-                      case _EntryAction.copy:
-                        await onCopy(file);
-                      case _EntryAction.move:
-                        await onMove(file);
-                      case _EntryAction.delete:
-                        await onDelete(file);
-                    }
-                  },
-                  itemBuilder: (_) {
-                    final items = <PopupMenuEntry<_EntryAction>>[];
-                    if (file.isFolder) {
-                      items.add(
-                        const PopupMenuItem<_EntryAction>(value: _EntryAction.open, child: Text('Open Folder')),
-                      );
-                    }
-                    items.addAll([
-                      PopupMenuItem<_EntryAction>(
-                        value: _EntryAction.download,
-                        child: Text(file.isFolder ? 'Download ZIP' : 'Download'),
-                      ),
-                      const PopupMenuItem<_EntryAction>(value: _EntryAction.copy, child: Text('Copy')),
-                      const PopupMenuItem<_EntryAction>(value: _EntryAction.move, child: Text('Move')),
-                      const PopupMenuDivider(),
-                      const PopupMenuItem<_EntryAction>(value: _EntryAction.delete, child: Text('Delete')),
-                    ]);
-                    return items;
-                  },
-                  icon: const Icon(LucideIcons.moreVertical, size: 16),
-                  color: AppColors.surface,
+                SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: PopupMenuButton<_EntryAction>(
+                    enabled: enabled && !busy,
+                    tooltip: 'More actions',
+                    padding: EdgeInsets.zero,
+                    iconSize: 16,
+                    onSelected: (action) async {
+                      switch (action) {
+                        case _EntryAction.open:
+                          await onOpenFolder(file);
+                        case _EntryAction.download:
+                          await onDownload(file);
+                        case _EntryAction.share:
+                          await onShare(file);
+                        case _EntryAction.copy:
+                          await onCopy(file);
+                        case _EntryAction.move:
+                          await onMove(file);
+                        case _EntryAction.delete:
+                          await onDelete(file);
+                      }
+                    },
+                    itemBuilder: (_) {
+                      final items = <PopupMenuEntry<_EntryAction>>[];
+                      if (file.isFolder) {
+                        items.add(
+                          const PopupMenuItem<_EntryAction>(value: _EntryAction.open, child: Text('Open Folder')),
+                        );
+                      }
+                      items.addAll([
+                        PopupMenuItem<_EntryAction>(
+                          value: _EntryAction.download,
+                          child: Text(file.isFolder ? 'Save ZIP Locally' : 'Save Locally'),
+                        ),
+                        const PopupMenuItem<_EntryAction>(value: _EntryAction.share, child: Text('Share')),
+                        const PopupMenuItem<_EntryAction>(value: _EntryAction.copy, child: Text('Copy')),
+                        const PopupMenuItem<_EntryAction>(value: _EntryAction.move, child: Text('Move')),
+                        const PopupMenuDivider(),
+                        const PopupMenuItem<_EntryAction>(value: _EntryAction.delete, child: Text('Delete')),
+                      ]);
+                      return items;
+                    },
+                    icon: const Icon(LucideIcons.moreVertical, size: 16),
+                    color: AppColors.surface,
+                  ),
                 ),
               ],
             ),
