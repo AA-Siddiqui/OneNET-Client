@@ -202,26 +202,6 @@ class _CloudStoragePanelState extends State<CloudStoragePanel> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _StorageUsageBar(access: access),
-              const SizedBox(height: 10),
-              Align(
-                alignment: Alignment.centerRight,
-                child: OutlinedButton.icon(
-                  onPressed: storage.isLoading || storage.isBusy ? null : () => storage.refresh(token, force: true),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.accentBright,
-                    side: BorderSide(color: AppColors.accent.withValues(alpha: 0.5)),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  ),
-                  icon: storage.isLoading
-                      ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.accentBright),
-                        )
-                      : const Icon(LucideIcons.refreshCcw, size: 16),
-                  label: Text('Refresh', style: AppTextStyles.mono.copyWith(color: AppColors.accentBright)),
-                ),
-              ),
               const SizedBox(height: 12),
               if (!hasStorage)
                 _ProRequiredBanner(
@@ -234,7 +214,9 @@ class _CloudStoragePanelState extends State<CloudStoragePanel> {
                   onCreateFolder: storage.isBusy ? null : () => _handleCreateFolder(token, storage),
                   onNavigateUp: storage.isBusy || storage.isAtRoot ? null : () => storage.navigateUp(token),
                   canNavigateUp: !storage.isAtRoot,
+                  onRefresh: storage.isBusy || storage.isLoading ? null : () => storage.refresh(token, force: true),
                   loading: storage.isBusy,
+                  storageLoading: storage.isLoading,
                 ),
               if (hasStorage) ...[
                 const SizedBox(height: 10),
@@ -419,15 +401,19 @@ class _StorageActions extends StatelessWidget {
   final VoidCallback? onUpload;
   final VoidCallback? onCreateFolder;
   final VoidCallback? onNavigateUp;
+  final VoidCallback? onRefresh;
   final bool canNavigateUp;
   final bool loading;
+  final bool storageLoading;
 
   const _StorageActions({
     required this.onUpload,
     required this.onCreateFolder,
     required this.onNavigateUp,
+    required this.onRefresh,
     required this.canNavigateUp,
     required this.loading,
+    required this.storageLoading,
   });
 
   @override
@@ -461,6 +447,22 @@ class _StorageActions extends StatelessWidget {
           ),
           icon: const Icon(LucideIcons.folderPlus, size: 16),
           label: Text('New Folder', style: AppTextStyles.mono.copyWith(color: AppColors.accentBright)),
+        ),
+        OutlinedButton.icon(
+          onPressed: onRefresh,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.accentBright,
+            side: BorderSide(color: AppColors.accent.withValues(alpha: 0.5)),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          ),
+          icon: storageLoading
+              ? const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.accentBright),
+                )
+              : const Icon(LucideIcons.refreshCcw, size: 16),
+          label: Text('Refresh', style: AppTextStyles.mono.copyWith(color: AppColors.accentBright)),
         ),
         OutlinedButton.icon(
           onPressed: canNavigateUp ? onNavigateUp : null,
