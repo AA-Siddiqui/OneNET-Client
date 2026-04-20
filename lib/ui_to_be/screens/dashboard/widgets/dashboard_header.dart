@@ -121,7 +121,7 @@ class DashboardHeader extends StatelessWidget {
                         child: _SuiteTabButton(
                           label: 'OneSTORAGE',
                           isSelected: selectedTab == DashboardSuiteTab.oneStorage,
-                          activeColor: oneMailTheme ? _oneMailBlue : AppColors.success,
+                          activeColor: oneMailTheme ? _oneMailBlue : AppColors.accentBright,
                           inactiveColor: tabInactive,
                           onTap: () => onTabChanged(DashboardSuiteTab.oneStorage),
                         ),

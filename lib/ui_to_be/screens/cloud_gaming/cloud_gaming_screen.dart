@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
-import '../../enums/game_session_status.dart';
-import '../../providers/game_session_provider.dart';
-import '../../services/url_launcher_service.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text_styles.dart';
-import '../../widgets/common/gradient_background.dart';
-import '../../widgets/common/section_header.dart';
-import 'widgets/game_launch_card.dart';
-import 'widgets/session_status_display.dart';
-import 'widgets/steam_login_prompt.dart';
+import 'package:hiddify/ui_to_be/enums/game_session_status.dart';
+import 'package:hiddify/ui_to_be/providers/game_session_provider.dart';
+import 'package:hiddify/ui_to_be/services/url_launcher_service.dart';
+import 'package:hiddify/ui_to_be/theme/app_colors.dart';
+import 'package:hiddify/ui_to_be/theme/app_text_styles.dart';
+import 'package:hiddify/ui_to_be/widgets/common/gradient_background.dart';
+import 'package:hiddify/ui_to_be/widgets/common/section_header.dart';
+import 'package:hiddify/ui_to_be/screens/cloud_gaming/widgets/game_launch_card.dart';
+import 'package:hiddify/ui_to_be/screens/cloud_gaming/widgets/session_status_display.dart';
+import 'package:hiddify/ui_to_be/screens/cloud_gaming/widgets/steam_login_prompt.dart';
 
 class CloudGamingScreen extends StatefulWidget {
   const CloudGamingScreen({super.key});
@@ -77,7 +77,7 @@ class _CloudGamingScreenState extends State<CloudGamingScreen> {
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                     const SizedBox(width: 4),
-                    Text('CLOUD GAMING', style: AppTextStyles.heading3.copyWith(letterSpacing: 2)),
+                    Text('eCG GAMING', style: AppTextStyles.heading3.copyWith(letterSpacing: 2)),
                     const Spacer(),
                     Consumer<GameSessionProvider>(
                       builder: (context, session, _) {
