@@ -3,9 +3,15 @@ import 'package:hiddify/ui_to_be/models/cloud_storage_file_model.dart';
 class CloudStorageListResponse {
   final int quotaBytes;
   final int usedBytes;
+  final String currentPath;
   final List<CloudStorageFileModel> files;
 
-  const CloudStorageListResponse({required this.quotaBytes, required this.usedBytes, required this.files});
+  const CloudStorageListResponse({
+    required this.quotaBytes,
+    required this.usedBytes,
+    required this.currentPath,
+    required this.files,
+  });
 
   factory CloudStorageListResponse.fromJson(Map<String, dynamic> json) {
     final rawFiles = json['files'];
@@ -14,6 +20,7 @@ class CloudStorageListResponse {
     return CloudStorageListResponse(
       quotaBytes: _asInt(json['quotaBytes']),
       usedBytes: _asInt(json['usedBytes']),
+      currentPath: (json['currentPath'] ?? json['path']) as String? ?? '',
       files: fileItems
           .whereType<Map>()
           .map((item) => CloudStorageFileModel.fromJson(item.map((key, value) => MapEntry('$key', value))))

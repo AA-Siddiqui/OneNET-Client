@@ -8,8 +8,9 @@ import 'package:http/http.dart' as http;
 class DownloadedCloudFile {
   final List<int> bytes;
   final String contentType;
+  final String fileName;
 
-  const DownloadedCloudFile({required this.bytes, required this.contentType});
+  const DownloadedCloudFile({required this.bytes, required this.contentType, required this.fileName});
 }
 
 class CloudStorageService {
@@ -19,11 +20,30 @@ class CloudStorageService {
     'Authorization': 'Bearer ${AppConstants.supabaseAnonKey}',
   };
 
+  static Map<String, String> _jsonHeaders(String token) => {
+    ..._supabaseHeaders(token),
+    'Content-Type': 'application/json',
+  };
+
+  static Uri _gatewayUri(String action, [Map<String, String?> query = const {}]) {
+    final normalizedQuery = <String, String>{'action': action};
+
+    query.forEach((key, value) {
+      if (value == null) {
+        return;
+      }
+      final trimmed = value.trim();
+      if (trimmed.isEmpty) {
+        return;
+      }
+      normalizedQuery[key] = trimmed;
+    });
+
+    return Uri.parse(AppConstants.storageGatewayEndpoint).replace(queryParameters: normalizedQuery);
+  }
+
   static Future<CloudStorageAccessModel> fetchAccess(String token) async {
-    final response = await http.get(
-      Uri.parse('${AppConstants.storageGatewayEndpoint}?action=access'),
-      headers: _supabaseHeaders(token),
-    );
+    final response = await http.get(_gatewayUri('access'), headers: _supabaseHeaders(token));
 
     final body = _decodeBody(response);
 
@@ -38,11 +58,8 @@ class CloudStorageService {
     return CloudStorageAccessModel.fromSupabase(body);
   }
 
-  static Future<CloudStorageListResponse> fetchFiles(String token) async {
-    final response = await http.get(
-      Uri.parse('${AppConstants.storageGatewayEndpoint}?action=files'),
-      headers: _supabaseHeaders(token),
-    );
+  static Future<CloudStorageListResponse> fetchFiles(String token, {String path = ''}) async {
+    final response = await http.get(_gatewayUri('files', {'path': path}), headers: _supabaseHeaders(token));
 
     final body = _decodeBody(response);
 
@@ -61,9 +78,17 @@ class CloudStorageService {
     return CloudStorageListResponse.fromJson(body);
   }
 
-  static Future<void> uploadFile({required String token, required String fileName, required List<int> bytes}) async {
-    final request = http.MultipartRequest('POST', Uri.parse('${AppConstants.storageGatewayEndpoint}?action=upload'));
+  static Future<void> uploadFile({
+    required String token,
+    required String fileName,
+    required List<int> bytes,
+    String path = '',
+  }) async {
+    final request = http.MultipartRequest('POST', _gatewayUri('upload', {'path': path}));
     request.headers.addAll(_supabaseHeaders(token));
+    if (path.trim().isNotEmpty) {
+      request.fields['path'] = path;
+    }
     request.files.add(http.MultipartFile.fromBytes('file', bytes, filename: fileName));
 
     final streamedResponse = await request.send();
@@ -84,10 +109,7 @@ class CloudStorageService {
   }
 
   static Future<DownloadedCloudFile> downloadFile({required String token, required String fileKey}) async {
-    final response = await http.get(
-      Uri.parse('${AppConstants.storageGatewayEndpoint}?action=download&key=${Uri.encodeQueryComponent(fileKey)}'),
-      headers: _supabaseHeaders(token),
-    );
+    final response = await http.get(_gatewayUri('download', {'key': fileKey}), headers: _supabaseHeaders(token));
 
     if (response.statusCode == 401) {
       throw const CloudStorageException('Session expired. Please sign in again.');
@@ -106,14 +128,41 @@ class CloudStorageService {
     return DownloadedCloudFile(
       bytes: response.bodyBytes,
       contentType: response.headers['content-type'] ?? 'application/octet-stream',
+      fileName:
+          _extractFileNameFromContentDisposition(response.headers['content-disposition']) ?? _nameFromPath(fileKey),
+    );
+  }
+
+  static Future<DownloadedCloudFile> downloadFolderAsZip({required String token, required String folderPath}) async {
+    final response = await http.get(
+      _gatewayUri('download-folder', {'path': folderPath}),
+      headers: _supabaseHeaders(token),
+    );
+
+    if (response.statusCode == 401) {
+      throw const CloudStorageException('Session expired. Please sign in again.');
+    }
+
+    if (response.statusCode >= 400) {
+      Map<String, dynamic>? body;
+      try {
+        body = jsonDecode(response.body) as Map<String, dynamic>;
+      } catch (_) {
+        body = null;
+      }
+      throw CloudStorageException(body?['error'] as String? ?? 'Folder download failed');
+    }
+
+    final folderName = _nameFromPath(folderPath);
+    return DownloadedCloudFile(
+      bytes: response.bodyBytes,
+      contentType: response.headers['content-type'] ?? 'application/zip',
+      fileName: _extractFileNameFromContentDisposition(response.headers['content-disposition']) ?? '$folderName.zip',
     );
   }
 
   static Future<void> deleteFile({required String token, required String fileKey}) async {
-    final response = await http.delete(
-      Uri.parse('${AppConstants.storageGatewayEndpoint}?action=delete&key=${Uri.encodeQueryComponent(fileKey)}'),
-      headers: _supabaseHeaders(token),
-    );
+    final response = await http.delete(_gatewayUri('delete', {'key': fileKey}), headers: _supabaseHeaders(token));
 
     final body = _decodeBody(response);
 
@@ -124,6 +173,135 @@ class CloudStorageService {
     if (response.statusCode >= 400 || body['success'] != true) {
       throw CloudStorageException(body['error'] as String? ?? 'Delete failed');
     }
+  }
+
+  static Future<void> createFolder({required String token, required String path}) async {
+    final response = await http.post(
+      _gatewayUri('create-folder'),
+      headers: _jsonHeaders(token),
+      body: jsonEncode({'path': path}),
+    );
+
+    final body = _decodeBody(response);
+
+    if (response.statusCode == 401) {
+      throw const CloudStorageException('Session expired. Please sign in again.');
+    }
+
+    if (response.statusCode >= 400 || body['success'] != true) {
+      throw CloudStorageException(body['error'] as String? ?? 'Create folder failed');
+    }
+  }
+
+  static Future<void> deleteFolder({required String token, required String path}) async {
+    final response = await http.delete(_gatewayUri('delete-folder', {'path': path}), headers: _supabaseHeaders(token));
+
+    final body = _decodeBody(response);
+
+    if (response.statusCode == 401) {
+      throw const CloudStorageException('Session expired. Please sign in again.');
+    }
+
+    if (response.statusCode >= 400 || body['success'] != true) {
+      throw CloudStorageException(body['error'] as String? ?? 'Delete folder failed');
+    }
+  }
+
+  static Future<void> copyItem({
+    required String token,
+    required String itemType,
+    required String sourcePath,
+    required String destinationPath,
+    String? newName,
+  }) async {
+    final response = await http.post(
+      _gatewayUri('copy'),
+      headers: _jsonHeaders(token),
+      body: jsonEncode({
+        'itemType': itemType,
+        'sourcePath': sourcePath,
+        'destinationPath': destinationPath,
+        if (newName != null && newName.trim().isNotEmpty) 'newName': newName.trim(),
+      }),
+    );
+
+    final body = _decodeBody(response);
+
+    if (response.statusCode == 401) {
+      throw const CloudStorageException('Session expired. Please sign in again.');
+    }
+
+    if (response.statusCode >= 400 || body['success'] != true) {
+      throw CloudStorageException(body['error'] as String? ?? 'Copy failed');
+    }
+  }
+
+  static Future<void> moveItem({
+    required String token,
+    required String itemType,
+    required String sourcePath,
+    required String destinationPath,
+    String? newName,
+  }) async {
+    final response = await http.post(
+      _gatewayUri('move'),
+      headers: _jsonHeaders(token),
+      body: jsonEncode({
+        'itemType': itemType,
+        'sourcePath': sourcePath,
+        'destinationPath': destinationPath,
+        if (newName != null && newName.trim().isNotEmpty) 'newName': newName.trim(),
+      }),
+    );
+
+    final body = _decodeBody(response);
+
+    if (response.statusCode == 401) {
+      throw const CloudStorageException('Session expired. Please sign in again.');
+    }
+
+    if (response.statusCode >= 400 || body['success'] != true) {
+      throw CloudStorageException(body['error'] as String? ?? 'Move failed');
+    }
+  }
+
+  static String? _extractFileNameFromContentDisposition(String? headerValue) {
+    final value = headerValue?.trim();
+    if (value == null || value.isEmpty) {
+      return null;
+    }
+
+    final utf8Match = RegExp(r"filename\*=UTF-8''([^;]+)", caseSensitive: false).firstMatch(value);
+    if (utf8Match != null) {
+      final encoded = utf8Match.group(1);
+      if (encoded != null && encoded.isNotEmpty) {
+        return Uri.decodeComponent(encoded);
+      }
+    }
+
+    final plainMatch = RegExp('filename="?([^";]+)"?', caseSensitive: false).firstMatch(value);
+    if (plainMatch != null) {
+      final plain = plainMatch.group(1)?.trim();
+      if (plain != null && plain.isNotEmpty) {
+        return plain;
+      }
+    }
+
+    return null;
+  }
+
+  static String _nameFromPath(String path) {
+    final trimmed = path.trim();
+    if (trimmed.isEmpty) {
+      return 'download';
+    }
+
+    final segments = trimmed.split('/').where((segment) => segment.trim().isNotEmpty).toList(growable: false);
+    if (segments.isEmpty) {
+      return 'download';
+    }
+
+    return segments.last;
   }
 
   static Map<String, dynamic> _decodeBody(http.Response response) {

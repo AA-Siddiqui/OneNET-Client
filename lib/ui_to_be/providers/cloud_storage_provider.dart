@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 class CloudStorageProvider extends ChangeNotifier {
   CloudStorageAccessModel? _access;
   List<CloudStorageFileModel> _files = const [];
+  String _currentPath = '';
   bool _isLoading = false;
   bool _isBusy = false;
   String? _errorMessage;
@@ -16,12 +17,14 @@ class CloudStorageProvider extends ChangeNotifier {
 
   CloudStorageAccessModel? get access => _access;
   List<CloudStorageFileModel> get files => _files;
+  String get currentPath => _currentPath;
   bool get isLoading => _isLoading;
   bool get isBusy => _isBusy;
   String? get errorMessage => _errorMessage;
   String? get statusMessage => _statusMessage;
+  bool get isAtRoot => _currentPath.trim().isEmpty;
 
-  Future<void> refresh(String? token, {bool force = false}) async {
+  Future<void> refresh(String? token, {bool force = false, String? path}) async {
     if (_isLoading) {
       return;
     }
@@ -31,13 +34,16 @@ class CloudStorageProvider extends ChangeNotifier {
       _activeToken = null;
       _access = null;
       _files = const [];
+      _currentPath = '';
       _errorMessage = null;
       _statusMessage = null;
       notifyListeners();
       return;
     }
 
-    if (!force && _activeToken == normalized && _access != null) {
+    final requestedPath = _normalizePath(path ?? _currentPath);
+
+    if (!force && _activeToken == normalized && _access != null && requestedPath == _currentPath) {
       return;
     }
 
@@ -53,13 +59,15 @@ class CloudStorageProvider extends ChangeNotifier {
 
       if (!access.hasStorageAccess) {
         _files = const [];
+        _currentPath = '';
         _isLoading = false;
         notifyListeners();
         return;
       }
 
-      final fileState = await CloudStorageService.fetchFiles(normalized);
+      final fileState = await CloudStorageService.fetchFiles(normalized, path: requestedPath);
       _files = fileState.files;
+      _currentPath = _normalizePath(fileState.currentPath);
       _access = access.copyWith(usedBytes: fileState.usedBytes, quotaBytes: fileState.quotaBytes);
     } on CloudStorageException catch (error) {
       _errorMessage = error.message;
@@ -69,6 +77,28 @@ class CloudStorageProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> navigateToPath(String? token, String path) async {
+    await refresh(token, force: true, path: path);
+  }
+
+  Future<void> navigateUp(String? token) async {
+    final normalized = token?.trim();
+    if (normalized == null || normalized.isEmpty || _isBusy || _isLoading) {
+      return;
+    }
+
+    final parent = _parentPath(_currentPath);
+    await refresh(normalized, force: true, path: parent);
+  }
+
+  Future<void> openFolder(String? token, CloudStorageFileModel folder) async {
+    if (!folder.isFolder) {
+      return;
+    }
+
+    await refresh(token, force: true, path: folder.key);
   }
 
   Future<void> uploadFromPicker(String? token) async {
@@ -109,10 +139,10 @@ class CloudStorageProvider extends ChangeNotifier {
       }
 
       final fileName = (file.name.isEmpty ? 'upload.bin' : file.name).trim();
-      await CloudStorageService.uploadFile(token: normalized, fileName: fileName, bytes: bytes);
+      await CloudStorageService.uploadFile(token: normalized, fileName: fileName, bytes: bytes, path: _currentPath);
 
       _statusMessage = '$fileName uploaded successfully.';
-      await refresh(normalized, force: true);
+      await refresh(normalized, force: true, path: _currentPath);
     } on CloudStorageException catch (error) {
       _errorMessage = error.message;
     } catch (_) {
@@ -123,7 +153,40 @@ class CloudStorageProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> downloadAndShare(String? token, CloudStorageFileModel file) async {
+  Future<void> createFolder(String? token, String folderName) async {
+    final normalized = token?.trim();
+    if (normalized == null || normalized.isEmpty || _isBusy) {
+      return;
+    }
+
+    final trimmedName = folderName.trim();
+    if (trimmedName.isEmpty) {
+      _errorMessage = 'Folder name cannot be empty.';
+      notifyListeners();
+      return;
+    }
+
+    _isBusy = true;
+    _errorMessage = null;
+    _statusMessage = null;
+    notifyListeners();
+
+    try {
+      await _ensureProAccess(normalized);
+      await CloudStorageService.createFolder(token: normalized, path: _joinPath(_currentPath, trimmedName));
+      _statusMessage = 'Created folder $trimmedName';
+      await refresh(normalized, force: true, path: _currentPath);
+    } on CloudStorageException catch (error) {
+      _errorMessage = error.message;
+    } catch (_) {
+      _errorMessage = 'Failed to create folder. Please try again.';
+    } finally {
+      _isBusy = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> downloadAndShare(String? token, CloudStorageFileModel entry) async {
     final normalized = token?.trim();
     if (normalized == null || normalized.isEmpty || _isBusy) {
       return;
@@ -136,14 +199,16 @@ class CloudStorageProvider extends ChangeNotifier {
 
     try {
       await _ensureProAccess(normalized);
-      final downloaded = await CloudStorageService.downloadFile(token: normalized, fileKey: file.key);
+      final downloaded = entry.isFolder
+          ? await CloudStorageService.downloadFolderAsZip(token: normalized, folderPath: entry.key)
+          : await CloudStorageService.downloadFile(token: normalized, fileKey: entry.key);
       final xFile = XFile.fromData(
         Uint8List.fromList(downloaded.bytes),
-        name: file.name,
+        name: downloaded.fileName,
         mimeType: downloaded.contentType,
       );
       await Share.shareXFiles([xFile], text: 'Downloaded from OneNET cloud storage');
-      _statusMessage = 'Downloaded ${file.name}';
+      _statusMessage = 'Downloaded ${downloaded.fileName}';
     } on CloudStorageException catch (error) {
       _errorMessage = error.message;
     } catch (_) {
@@ -154,7 +219,7 @@ class CloudStorageProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> deleteFile(String? token, CloudStorageFileModel file) async {
+  Future<void> deleteEntry(String? token, CloudStorageFileModel entry) async {
     final normalized = token?.trim();
     if (normalized == null || normalized.isEmpty || _isBusy) {
       return;
@@ -167,9 +232,13 @@ class CloudStorageProvider extends ChangeNotifier {
 
     try {
       await _ensureProAccess(normalized);
-      await CloudStorageService.deleteFile(token: normalized, fileKey: file.key);
-      _statusMessage = 'Deleted ${file.name}';
-      await refresh(normalized, force: true);
+      if (entry.isFolder) {
+        await CloudStorageService.deleteFolder(token: normalized, path: entry.key);
+      } else {
+        await CloudStorageService.deleteFile(token: normalized, fileKey: entry.key);
+      }
+      _statusMessage = 'Deleted ${entry.name}';
+      await refresh(normalized, force: true, path: _currentPath);
     } on CloudStorageException catch (error) {
       _errorMessage = error.message;
     } catch (_) {
@@ -180,15 +249,123 @@ class CloudStorageProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> copyEntry(
+    String? token,
+    CloudStorageFileModel entry, {
+    required String destinationPath,
+    String? newName,
+  }) async {
+    await _relocateEntry(token, entry, destinationPath: destinationPath, newName: newName, move: false);
+  }
+
+  Future<void> moveEntry(
+    String? token,
+    CloudStorageFileModel entry, {
+    required String destinationPath,
+    String? newName,
+  }) async {
+    await _relocateEntry(token, entry, destinationPath: destinationPath, newName: newName, move: true);
+  }
+
+  Future<void> _relocateEntry(
+    String? token,
+    CloudStorageFileModel entry, {
+    required String destinationPath,
+    String? newName,
+    required bool move,
+  }) async {
+    final normalized = token?.trim();
+    if (normalized == null || normalized.isEmpty || _isBusy) {
+      return;
+    }
+
+    _isBusy = true;
+    _errorMessage = null;
+    _statusMessage = null;
+    notifyListeners();
+
+    try {
+      await _ensureProAccess(normalized);
+      final destination = _normalizePath(destinationPath);
+      if (move) {
+        await CloudStorageService.moveItem(
+          token: normalized,
+          itemType: entry.isFolder ? 'folder' : 'file',
+          sourcePath: entry.key,
+          destinationPath: destination,
+          newName: newName,
+        );
+      } else {
+        await CloudStorageService.copyItem(
+          token: normalized,
+          itemType: entry.isFolder ? 'folder' : 'file',
+          sourcePath: entry.key,
+          destinationPath: destination,
+          newName: newName,
+        );
+      }
+
+      final action = move ? 'Moved' : 'Copied';
+      _statusMessage = '$action ${entry.name}';
+      await refresh(normalized, force: true, path: _currentPath);
+    } on CloudStorageException catch (error) {
+      _errorMessage = error.message;
+    } catch (_) {
+      _errorMessage = '${move ? 'Move' : 'Copy'} failed. Please try again.';
+    } finally {
+      _isBusy = false;
+      notifyListeners();
+    }
+  }
+
   Future<CloudStorageAccessModel> _ensureProAccess(String token) async {
     final freshAccess = await CloudStorageService.fetchAccess(token);
-    final previousUsed = _access?.usedBytes ?? 0;
-    _access = freshAccess.copyWith(usedBytes: previousUsed);
+    _access = freshAccess;
 
     if (!freshAccess.hasStorageAccess) {
       throw CloudStorageException(freshAccess.message);
     }
 
     return _access!;
+  }
+
+  static String _normalizePath(String path) {
+    final trimmed = path.trim().replaceAll('\\\\', '/');
+    if (trimmed.isEmpty) {
+      return '';
+    }
+
+    final segments = trimmed
+        .split('/')
+        .map((segment) => segment.trim())
+        .where((segment) => segment.isNotEmpty && segment != '.' && segment != '..')
+        .toList(growable: false);
+
+    return segments.join('/');
+  }
+
+  static String _joinPath(String parent, String child) {
+    final safeParent = _normalizePath(parent);
+    final safeChild = _normalizePath(child);
+    if (safeParent.isEmpty) {
+      return safeChild;
+    }
+    if (safeChild.isEmpty) {
+      return safeParent;
+    }
+    return '$safeParent/$safeChild';
+  }
+
+  static String _parentPath(String path) {
+    final normalized = _normalizePath(path);
+    if (normalized.isEmpty) {
+      return '';
+    }
+
+    final divider = normalized.lastIndexOf('/');
+    if (divider <= 0) {
+      return '';
+    }
+    return normalized.substring(0, divider);
   }
 }
