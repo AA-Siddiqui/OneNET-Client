@@ -181,7 +181,7 @@ class _CloudStoragePanelState extends State<CloudStoragePanel> {
       if (!mounted) {
         return;
       }
-      context.read<CloudStorageProvider>().refresh(token, force: true);
+      context.read<CloudStorageProvider>().refresh(token);
     });
   }
 

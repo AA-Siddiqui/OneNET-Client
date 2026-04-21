@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:hiddify/hiddifycore/generated/v2/hcore/hcore.pb.dart';
 
 import 'package:hiddify/ui_to_be/enums/connection_status.dart';
 import 'package:hiddify/ui_to_be/models/server_model.dart';
@@ -27,8 +28,13 @@ class VpnProvider extends ChangeNotifier {
 
   StreamSubscription<ConnectionStatus>? _statusSubscription;
   StreamSubscription<ServerModel?>? _activeServerSubscription;
+  StreamSubscription<SystemInfo>? _statsSubscription;
   Timer? _durationTimer;
   Timer? _disconnectConfirmationTimer;
+  int _sessionStartTransferredTotal = 0;
+  int _latestTransferredTotal = 0;
+  bool _hasSeededSessionTraffic = false;
+  int _lastSessionTransferredBytes = 0;
 
   VpnProvider() {
     _status = CurrentAppBridge.currentConnectionStatus();
@@ -56,6 +62,7 @@ class VpnProvider extends ChangeNotifier {
   bool get isLoadingServers => _isLoadingServers;
   List<ServerModel> get servers => List.unmodifiable(_servers);
   ServerModel get server => _selectedServer;
+  int get lastSessionTransferredBytes => _lastSessionTransferredBytes;
 
   Duration get connectedDuration {
     final startedAt = _connectedSince ?? _persistedConnectedSince;
@@ -89,6 +96,7 @@ class VpnProvider extends ChangeNotifier {
     _disconnectConfirmationTimer?.cancel();
     _connectedSince = null;
     _persistedConnectedSince = null;
+    _lastSessionTransferredBytes = 0;
     _errorMessage = null;
     _needsVpnPermission = false;
     _connectedServerDisplayFallback = _selectedServer;
@@ -158,6 +166,7 @@ class VpnProvider extends ChangeNotifier {
     _lastTraceId = traceId;
     _disconnectConfirmationTimer?.cancel();
     _durationTimer?.cancel();
+    _captureSessionTrafficIfAvailable();
 
     try {
       await CurrentAppBridge.disconnect();
@@ -374,11 +383,16 @@ class VpnProvider extends ChangeNotifier {
       }
       _errorMessage = null;
       _needsVpnPermission = false;
+      _startSessionTrafficTracking();
       _startDurationTimer();
     } else if (status == ConnectionStatus.disconnected) {
       _assignedIp = null;
       _durationTimer?.cancel();
       _connectedServerDisplayFallback = null;
+
+      if (previousStatus == ConnectionStatus.connected) {
+        _captureSessionTrafficIfAvailable();
+      }
 
       if (previousStatus != ConnectionStatus.disconnected) {
         _scheduleDisconnectedStateCommit();
@@ -426,12 +440,57 @@ class VpnProvider extends ChangeNotifier {
     _durationTimer = Timer.periodic(const Duration(seconds: 1), (_) => notifyListeners());
   }
 
+  void _startSessionTrafficTracking() {
+    _statsSubscription?.cancel();
+    _sessionStartTransferredTotal = 0;
+    _latestTransferredTotal = 0;
+    _hasSeededSessionTraffic = false;
+
+    _statsSubscription = CurrentAppBridge.watchStats().listen((stats) {
+      if (stats.hasTrafficAvailable() && !stats.trafficAvailable) {
+        return;
+      }
+
+      final uplinkTotal = _safeToInt(stats.uplinkTotal);
+      final downlinkTotal = _safeToInt(stats.downlinkTotal);
+      final total = uplinkTotal + downlinkTotal;
+
+      if (!_hasSeededSessionTraffic) {
+        _sessionStartTransferredTotal = total;
+        _hasSeededSessionTraffic = true;
+      }
+
+      _latestTransferredTotal = total;
+    }, onError: (_, __) {});
+  }
+
+  void _captureSessionTrafficIfAvailable() {
+    if (_hasSeededSessionTraffic) {
+      final transferred = (_latestTransferredTotal - _sessionStartTransferredTotal).clamp(0, 1 << 62);
+      _lastSessionTransferredBytes = transferred;
+    }
+
+    _statsSubscription?.cancel();
+    _statsSubscription = null;
+    _sessionStartTransferredTotal = 0;
+    _latestTransferredTotal = 0;
+    _hasSeededSessionTraffic = false;
+  }
+
+  int _safeToInt(Object value) {
+    return switch (value) {
+      final num n => n.toInt(),
+      _ => (value as dynamic).toInt() as int,
+    };
+  }
+
   @override
   void dispose() {
     _disconnectConfirmationTimer?.cancel();
     _durationTimer?.cancel();
     _statusSubscription?.cancel();
     _activeServerSubscription?.cancel();
+    _statsSubscription?.cancel();
     super.dispose();
   }
 }

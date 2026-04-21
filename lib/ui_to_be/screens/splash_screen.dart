@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:hiddify/core/localization/locale_preferences.dart';
@@ -8,6 +10,7 @@ import 'package:hiddify/features/settings/data/config_option_repository.dart';
 import 'package:hiddify/ui_to_be/config/app_constants.dart';
 import 'package:hiddify/ui_to_be/config/routes.dart';
 import 'package:hiddify/ui_to_be/providers/auth_provider.dart';
+import 'package:hiddify/ui_to_be/providers/cloud_storage_provider.dart';
 import 'package:hiddify/ui_to_be/providers/user_provider.dart';
 import 'package:hiddify/ui_to_be/providers/vpn_provider.dart';
 import 'package:hiddify/ui_to_be/theme/app_colors.dart';
@@ -54,6 +57,7 @@ class _SplashScreenState extends State<SplashScreen> {
       }
       if (!mounted) return;
       if (userProvider.hasActivePlan) {
+        unawaited(context.read<CloudStorageProvider>().refresh(authProvider.token));
         Navigator.of(context).pushReplacementNamed(Routes.dashboard);
       } else {
         Navigator.of(context).pushReplacementNamed(Routes.noPlan);

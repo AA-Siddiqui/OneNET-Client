@@ -1,15 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
-import '../../config/routes.dart';
-import '../../providers/auth_provider.dart';
-import '../../providers/user_provider.dart';
-import '../../services/url_launcher_service.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text_styles.dart';
-import '../../widgets/common/gradient_background.dart';
-import 'widgets/brand_header.dart';
-import 'widgets/login_form.dart';
+import 'package:hiddify/ui_to_be/config/routes.dart';
+import 'package:hiddify/ui_to_be/providers/auth_provider.dart';
+import 'package:hiddify/ui_to_be/providers/cloud_storage_provider.dart';
+import 'package:hiddify/ui_to_be/providers/user_provider.dart';
+import 'package:hiddify/ui_to_be/services/url_launcher_service.dart';
+import 'package:hiddify/ui_to_be/theme/app_colors.dart';
+import 'package:hiddify/ui_to_be/theme/app_text_styles.dart';
+import 'package:hiddify/ui_to_be/widgets/common/gradient_background.dart';
+import 'package:hiddify/ui_to_be/screens/login/widgets/brand_header.dart';
+import 'package:hiddify/ui_to_be/screens/login/widgets/login_form.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -47,6 +50,7 @@ class LoginScreen extends StatelessWidget {
                                 }
                                 if (!context.mounted) return;
                                 if (userProvider.hasActivePlan) {
+                                  unawaited(context.read<CloudStorageProvider>().refresh(auth.token));
                                   Navigator.of(context).pushReplacementNamed(Routes.dashboard);
                                 } else {
                                   Navigator.of(context).pushReplacementNamed(Routes.noPlan);

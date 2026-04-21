@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:hiddify/core/notification/in_app_notification_controller.dart';
 import 'package:hiddify/ui_to_be/config/routes.dart';
 import 'package:hiddify/ui_to_be/enums/connection_status.dart';
 import 'package:hiddify/ui_to_be/providers/auth_provider.dart';
@@ -14,9 +15,9 @@ import 'package:hiddify/ui_to_be/screens/dashboard/widgets/speed_indicator.dart'
 import 'package:hiddify/ui_to_be/screens/dashboard/widgets/vpn_toggle_button.dart';
 import 'package:hiddify/ui_to_be/theme/app_colors.dart';
 import 'package:hiddify/ui_to_be/theme/app_text_styles.dart';
-import 'package:hiddify/ui_to_be/utils/formatters.dart';
 import 'package:hiddify/ui_to_be/utils/vpn_trace.dart';
 import 'package:hiddify/ui_to_be/widgets/common/gradient_background.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:provider/provider.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -28,6 +29,64 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   DashboardSuiteTab _selectedTab = DashboardSuiteTab.oneNet;
+  VpnProvider? _vpnProvider;
+  ConnectionStatus? _lastObservedStatus;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final provider = context.read<VpnProvider>();
+    if (identical(provider, _vpnProvider)) {
+      return;
+    }
+
+    _vpnProvider?.removeListener(_onVpnStateChanged);
+    _vpnProvider = provider;
+    _lastObservedStatus = provider.status;
+    _vpnProvider?.addListener(_onVpnStateChanged);
+  }
+
+  @override
+  void dispose() {
+    _vpnProvider?.removeListener(_onVpnStateChanged);
+    super.dispose();
+  }
+
+  void _onVpnStateChanged() {
+    final vpn = _vpnProvider;
+    if (!mounted || vpn == null) {
+      return;
+    }
+
+    final previous = _lastObservedStatus;
+    final current = vpn.status;
+    _lastObservedStatus = current;
+
+    if (previous == ConnectionStatus.connected && current == ConnectionStatus.disconnected) {
+      final transferred = _formatTransferredBytes(vpn.lastSessionTransferredBytes);
+      ProviderScope.containerOf(context, listen: false)
+          .read(inAppNotificationControllerProvider)
+          .showInfoToast('Session transferred: $transferred', duration: const Duration(seconds: 5));
+    }
+  }
+
+  String _formatTransferredBytes(int bytes) {
+    if (bytes <= 0) {
+      return '0 B';
+    }
+
+    const units = <String>['B', 'KB', 'MB', 'GB', 'TB'];
+    var unitIndex = 0;
+    var value = bytes.toDouble();
+
+    while (value >= 1024 && unitIndex < units.length - 1) {
+      value /= 1024;
+      unitIndex += 1;
+    }
+
+    final decimals = value >= 100 || unitIndex == 0 ? 0 : 1;
+    return '${value.toStringAsFixed(decimals)} ${units[unitIndex]}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -113,14 +172,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         style: AppTextStyles.mono.copyWith(color: statusColor, letterSpacing: 2, fontSize: 13),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    isConnected ? Formatters.duration(vpn.connectedDuration) : '00:00:00',
-                    style: AppTextStyles.monoBig.copyWith(
-                      fontSize: 28,
-                      color: isConnected ? AppColors.accentBright : AppColors.textDim.withValues(alpha: 0.4),
-                    ),
                   ),
                 ],
               ).animate().fadeIn(duration: 400.ms);
