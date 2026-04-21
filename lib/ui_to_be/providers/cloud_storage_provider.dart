@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hiddify/ui_to_be/models/cloud_storage_access_model.dart';
 import 'package:hiddify/ui_to_be/models/cloud_storage_file_model.dart';
+import 'package:hiddify/ui_to_be/models/cloud_storage_list_response.dart';
 import 'package:hiddify/ui_to_be/services/cloud_storage_service.dart';
 import 'package:hiddify/utils/platform_utils.dart';
 import 'package:share_plus/share_plus.dart';
@@ -17,6 +19,9 @@ class CloudStorageProvider extends ChangeNotifier {
   String? _errorMessage;
   String? _statusMessage;
   String? _activeToken;
+  final Map<String, CloudStorageListResponse> _directoryCache = <String, CloudStorageListResponse>{};
+  final Map<String, Future<CloudStorageListResponse?>> _prefetchTasks = <String, Future<CloudStorageListResponse?>>{};
+  int _directoryEpoch = 0;
 
   CloudStorageAccessModel? get access => _access;
   List<CloudStorageFileModel> get files => _files;
@@ -40,38 +45,44 @@ class CloudStorageProvider extends ChangeNotifier {
       _currentPath = '';
       _errorMessage = null;
       _statusMessage = null;
+      _resetDirectoryCache();
       notifyListeners();
       return;
     }
 
     final requestedPath = _normalizePath(path ?? _currentPath);
 
-    if (!force && _activeToken == normalized && _access != null && requestedPath == _currentPath) {
+    if (_activeToken != normalized) {
+      _activeToken = normalized;
+      _access = null;
+      _currentPath = '';
+      _resetDirectoryCache();
+    }
+
+    if (!force && _access != null && requestedPath == _currentPath) {
       return;
     }
 
-    _activeToken = normalized;
     _isLoading = true;
     _errorMessage = null;
     _statusMessage = null;
     notifyListeners();
 
     try {
-      final access = await CloudStorageService.fetchAccess(normalized);
+      final access = force || _access == null ? await CloudStorageService.fetchAccess(normalized) : _access!;
       _access = access;
 
       if (!access.hasStorageAccess) {
         _files = const [];
         _currentPath = '';
-        _isLoading = false;
-        notifyListeners();
-        return;
+        _resetDirectoryCache();
+      } else {
+        final fileState = await _loadDirectoryState(normalized, requestedPath, force: force);
+        _files = fileState.files;
+        _currentPath = _normalizePath(fileState.currentPath);
+        _access = access.copyWith(usedBytes: fileState.usedBytes, quotaBytes: fileState.quotaBytes);
+        _prefetchCurrentLevel(normalized, fileState.files);
       }
-
-      final fileState = await CloudStorageService.fetchFiles(normalized, path: requestedPath);
-      _files = fileState.files;
-      _currentPath = _normalizePath(fileState.currentPath);
-      _access = access.copyWith(usedBytes: fileState.usedBytes, quotaBytes: fileState.quotaBytes);
     } on CloudStorageException catch (error) {
       _errorMessage = error.message;
     } catch (_) {
@@ -83,7 +94,7 @@ class CloudStorageProvider extends ChangeNotifier {
   }
 
   Future<void> navigateToPath(String? token, String path) async {
-    await refresh(token, force: true, path: path);
+    await refresh(token, path: path);
   }
 
   Future<void> navigateUp(String? token) async {
@@ -93,7 +104,7 @@ class CloudStorageProvider extends ChangeNotifier {
     }
 
     final parent = _parentPath(_currentPath);
-    await refresh(normalized, force: true, path: parent);
+    await refresh(normalized, path: parent);
   }
 
   Future<void> openFolder(String? token, CloudStorageFileModel folder) async {
@@ -101,7 +112,7 @@ class CloudStorageProvider extends ChangeNotifier {
       return;
     }
 
-    await refresh(token, force: true, path: folder.key);
+    await refresh(token, path: folder.key);
   }
 
   Future<void> uploadFromPicker(String? token) async {
@@ -145,6 +156,7 @@ class CloudStorageProvider extends ChangeNotifier {
       await CloudStorageService.uploadFile(token: normalized, fileName: fileName, bytes: bytes, path: _currentPath);
 
       _statusMessage = '$fileName uploaded successfully.';
+      _resetDirectoryCache();
       await refresh(normalized, force: true, path: _currentPath);
     } on CloudStorageException catch (error) {
       _errorMessage = error.message;
@@ -178,6 +190,7 @@ class CloudStorageProvider extends ChangeNotifier {
       await _ensureProAccess(normalized);
       await CloudStorageService.createFolder(token: normalized, path: _joinPath(_currentPath, trimmedName));
       _statusMessage = 'Created folder $trimmedName';
+      _resetDirectoryCache();
       await refresh(normalized, force: true, path: _currentPath);
     } on CloudStorageException catch (error) {
       _errorMessage = error.message;
@@ -292,6 +305,7 @@ class CloudStorageProvider extends ChangeNotifier {
         await CloudStorageService.deleteFile(token: normalized, fileKey: entry.key);
       }
       _statusMessage = 'Deleted ${entry.name}';
+      _resetDirectoryCache();
       await refresh(normalized, force: true, path: _currentPath);
     } on CloudStorageException catch (error) {
       _errorMessage = error.message;
@@ -361,6 +375,7 @@ class CloudStorageProvider extends ChangeNotifier {
 
       final action = move ? 'Moved' : 'Copied';
       _statusMessage = '$action ${entry.name}';
+      _resetDirectoryCache();
       await refresh(normalized, force: true, path: _currentPath);
     } on CloudStorageException catch (error) {
       _errorMessage = error.message;
@@ -370,6 +385,109 @@ class CloudStorageProvider extends ChangeNotifier {
       _isBusy = false;
       notifyListeners();
     }
+  }
+
+  Future<CloudStorageListResponse> _loadDirectoryState(
+    String token,
+    String requestedPath, {
+    required bool force,
+  }) async {
+    final normalizedPath = _normalizePath(requestedPath);
+
+    if (!force) {
+      final cached = _directoryCache[normalizedPath];
+      if (cached != null) {
+        return cached;
+      }
+
+      final pendingPrefetch = _prefetchTasks[normalizedPath];
+      if (pendingPrefetch != null) {
+        final prefetched = await pendingPrefetch;
+        if (prefetched != null) {
+          return prefetched;
+        }
+      }
+    }
+
+    final fileState = await CloudStorageService.fetchFiles(token, path: normalizedPath);
+    _cacheDirectoryState(fileState, requestedPath: normalizedPath);
+    return fileState;
+  }
+
+  void _cacheDirectoryState(CloudStorageListResponse state, {required String requestedPath}) {
+    final normalizedRequestedPath = _normalizePath(requestedPath);
+    final normalizedCurrentPath = _normalizePath(state.currentPath);
+    final primaryKey = normalizedCurrentPath.isEmpty ? normalizedRequestedPath : normalizedCurrentPath;
+
+    _directoryCache[primaryKey] = state;
+    _directoryCache[normalizedRequestedPath] = state;
+  }
+
+  void _prefetchCurrentLevel(String token, List<CloudStorageFileModel> entries) {
+    if (_activeToken != token) {
+      return;
+    }
+
+    final paths = entries
+        .where((entry) => entry.isFolder)
+        .map((entry) => _normalizePath(entry.key))
+        .where((path) => path.isNotEmpty)
+        .toSet();
+
+    if (paths.isEmpty) {
+      return;
+    }
+
+    final epoch = _directoryEpoch;
+    unawaited(_prefetchDirectories(token, paths, epoch));
+  }
+
+  Future<void> _prefetchDirectories(String token, Set<String> paths, int epoch) async {
+    await Future.wait(paths.map((path) => _prefetchDirectory(token, path, epoch)));
+  }
+
+  Future<CloudStorageListResponse?> _prefetchDirectory(String token, String path, int epoch) async {
+    final normalizedPath = _normalizePath(path);
+    if (normalizedPath.isEmpty || _activeToken != token || _directoryEpoch != epoch) {
+      return null;
+    }
+
+    final cached = _directoryCache[normalizedPath];
+    if (cached != null) {
+      return cached;
+    }
+
+    final pending = _prefetchTasks[normalizedPath];
+    if (pending != null) {
+      return pending;
+    }
+
+    final task = () async {
+      try {
+        final prefetched = await CloudStorageService.fetchFiles(token, path: normalizedPath);
+        if (_activeToken != token || _directoryEpoch != epoch) {
+          return null;
+        }
+
+        _cacheDirectoryState(prefetched, requestedPath: normalizedPath);
+        return prefetched;
+      } on CloudStorageException {
+        return null;
+      } catch (_) {
+        return null;
+      } finally {
+        _prefetchTasks.remove(normalizedPath);
+      }
+    }();
+
+    _prefetchTasks[normalizedPath] = task;
+    return task;
+  }
+
+  void _resetDirectoryCache() {
+    _directoryEpoch += 1;
+    _directoryCache.clear();
+    _prefetchTasks.clear();
   }
 
   Future<CloudStorageAccessModel> _ensureProAccess(String token) async {

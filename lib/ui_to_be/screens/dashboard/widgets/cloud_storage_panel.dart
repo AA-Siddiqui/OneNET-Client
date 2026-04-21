@@ -317,6 +317,8 @@ class _StoragePathBarState extends State<_StoragePathBar> {
 
   @override
   Widget build(BuildContext context) {
+    final isWindows = Theme.of(context).platform == TargetPlatform.windows;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -330,27 +332,31 @@ class _StoragePathBarState extends State<_StoragePathBar> {
         thumbVisibility: true,
         trackVisibility: true,
         interactive: true,
-        child: SingleChildScrollView(
-          controller: _scrollController,
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              for (var index = 0; index < widget.breadcrumbs.length; index += 1) ...[
-                TextButton(
-                  onPressed: widget.busy ? null : () => widget.onNavigate(widget.breadcrumbs[index].path),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.accentBright,
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        scrollbarOrientation: ScrollbarOrientation.bottom,
+        child: Padding(
+          padding: isWindows ? const EdgeInsets.only(top: 2, bottom: 10) : const EdgeInsets.only(bottom: 6),
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (var index = 0; index < widget.breadcrumbs.length; index += 1) ...[
+                  TextButton(
+                    onPressed: widget.busy ? null : () => widget.onNavigate(widget.breadcrumbs[index].path),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.accentBright,
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    ),
+                    child: Text(
+                      widget.breadcrumbs[index].label,
+                      style: AppTextStyles.monoSmall.copyWith(color: AppColors.accentBright),
+                    ),
                   ),
-                  child: Text(
-                    widget.breadcrumbs[index].label,
-                    style: AppTextStyles.monoSmall.copyWith(color: AppColors.accentBright),
-                  ),
-                ),
-                if (index < widget.breadcrumbs.length - 1)
-                  Text('/', style: AppTextStyles.monoSmall.copyWith(color: AppColors.textDim)),
+                  if (index < widget.breadcrumbs.length - 1)
+                    Text('/', style: AppTextStyles.monoSmall.copyWith(color: AppColors.textDim)),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
