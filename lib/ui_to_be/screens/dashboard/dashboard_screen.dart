@@ -17,7 +17,7 @@ import 'package:hiddify/ui_to_be/theme/app_colors.dart';
 import 'package:hiddify/ui_to_be/theme/app_text_styles.dart';
 import 'package:hiddify/ui_to_be/utils/vpn_trace.dart';
 import 'package:hiddify/ui_to_be/widgets/common/gradient_background.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart' show ProviderScope;
 import 'package:provider/provider.dart';
 
 class DashboardScreen extends StatefulWidget {
