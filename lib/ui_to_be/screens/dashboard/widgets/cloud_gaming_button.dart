@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import '../../../theme/app_colors.dart';
-import '../../../theme/app_text_styles.dart';
-import '../../../widgets/common/glow_container.dart';
+import 'package:hiddify/ui_to_be/theme/app_colors.dart';
+import 'package:hiddify/ui_to_be/theme/app_text_styles.dart';
+import 'package:hiddify/ui_to_be/widgets/common/glow_container.dart';
 
 class CloudGamingButton extends StatelessWidget {
   final VoidCallback onTap;
@@ -30,7 +30,7 @@ class CloudGamingButton extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('CLOUD GAMING', style: AppTextStyles.heading3.copyWith(color: AppColors.gold)),
+                  Text('eCG GAMING', style: AppTextStyles.heading3.copyWith(color: AppColors.gold)),
                   Text(
                     'Launch game session · Moonlight / Sunshine',
                     style: AppTextStyles.bodySmall.copyWith(color: AppColors.textDim),
