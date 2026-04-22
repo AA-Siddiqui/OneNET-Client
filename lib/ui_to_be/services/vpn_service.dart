@@ -153,6 +153,51 @@ class VpnService {
         .toList(growable: false);
   }
 
+  static Future<VpnMeteredUsage> fetchMeteredUsage({required String token}) async {
+    final normalizedToken = token.trim();
+    if (normalizedToken.isEmpty) {
+      throw const VpnException('Please sign in to view usage.');
+    }
+
+    final response = await http.get(
+      Uri.parse(AppConstants.getUsageEndpoint),
+      headers: {'x-auth-token': 'Bearer $normalizedToken', 'apikey': AppConstants.supabaseAnonKey},
+    );
+
+    final decoded = _decodeJson(response.body);
+    final body = _asStringMap(decoded);
+
+    if (response.statusCode != 200 || body == null || body['success'] != true) {
+      throw VpnException(
+        _extractErrorMessage(body) ??
+            (response.statusCode == 401 ? 'Session expired. Please sign in again.' : 'Failed to load VPN usage.'),
+      );
+    }
+
+    final metered = _asStringMap(body['meteredUsage']);
+
+    final usedBytes = _safeNonNegativeInt(metered?['used_bytes']);
+    final allowedBytes = _safeNonNegativeInt(metered?['allowed_bytes']);
+    final remainingBytes = _safeNonNegativeInt(metered?['remaining_bytes']);
+    final planTier = _safeString(metered?['plan_tier'], fallback: 'free');
+
+    final isPaidUserRaw = metered?['is_paid_user'];
+    final isPaidUser = switch (isPaidUserRaw) {
+      final bool value => value,
+      final num value => value > 0,
+      final String value => value.toLowerCase() == 'true' || value == '1',
+      _ => false,
+    };
+
+    return VpnMeteredUsage(
+      usedBytes: usedBytes,
+      allowedBytes: allowedBytes,
+      remainingBytes: remainingBytes,
+      planTier: planTier,
+      isPaidUser: isPaidUser,
+    );
+  }
+
   static Future<void> disconnect({String? traceId}) {
     return CurrentAppBridge.disconnect();
   }
@@ -211,6 +256,27 @@ class VpnService {
     return parsed;
   }
 
+  static int _safeNonNegativeInt(Object? value, {int fallback = 0}) {
+    if (value is int) {
+      return value >= 0 ? value : fallback;
+    }
+    if (value is num) {
+      final parsed = value.toInt();
+      return parsed >= 0 ? parsed : fallback;
+    }
+
+    final normalized = _safeString(value);
+    if (normalized.isEmpty) {
+      return fallback;
+    }
+
+    final parsed = int.tryParse(normalized);
+    if (parsed == null || parsed < 0) {
+      return fallback;
+    }
+    return parsed;
+  }
+
   static Object? _decodeJson(String payload) {
     try {
       final decoded = jsonDecode(payload);
@@ -239,6 +305,36 @@ class VpnException implements Exception {
 
   @override
   String toString() => message;
+}
+
+class VpnMeteredUsage {
+  static const int _bytesPerGiB = 1024 * 1024 * 1024;
+
+  final int usedBytes;
+  final int allowedBytes;
+  final int remainingBytes;
+  final String planTier;
+  final bool isPaidUser;
+
+  const VpnMeteredUsage({
+    required this.usedBytes,
+    required this.allowedBytes,
+    required this.remainingBytes,
+    required this.planTier,
+    required this.isPaidUser,
+  });
+
+  double get usedGiB => usedBytes / _bytesPerGiB;
+  double get allowedGiB => allowedBytes / _bytesPerGiB;
+  double get remainingGiB => remainingBytes / _bytesPerGiB;
+
+  double get usageRatio {
+    if (allowedBytes <= 0) {
+      return 0;
+    }
+    final ratio = usedBytes / allowedBytes;
+    return ratio.clamp(0.0, 1.0);
+  }
 }
 
 class VpnPermissionRequiredException extends VpnException {

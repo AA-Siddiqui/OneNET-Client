@@ -12,6 +12,7 @@ import 'package:hiddify/ui_to_be/screens/dashboard/widgets/dashboard_header.dart
 import 'package:hiddify/ui_to_be/screens/dashboard/widgets/one_mail_panel.dart';
 import 'package:hiddify/ui_to_be/screens/dashboard/widgets/server_selector.dart';
 import 'package:hiddify/ui_to_be/screens/dashboard/widgets/speed_indicator.dart';
+import 'package:hiddify/ui_to_be/screens/dashboard/widgets/vpn_usage_meter_card.dart';
 import 'package:hiddify/ui_to_be/screens/dashboard/widgets/vpn_toggle_button.dart';
 import 'package:hiddify/ui_to_be/theme/app_colors.dart';
 import 'package:hiddify/ui_to_be/theme/app_text_styles.dart';
@@ -191,6 +192,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
           // Speed indicators
           const SpeedIndicator().animate().fadeIn(duration: 400.ms, delay: 200.ms),
           const SizedBox(height: 20),
+
+          Consumer2<AuthProvider, VpnProvider>(
+            builder: (context, auth, vpn, _) {
+              return VpnUsageMeterCard(authToken: auth.token, connectionStatus: vpn.status);
+            },
+          ).animate().fadeIn(duration: 400.ms, delay: 250.ms),
+          const SizedBox(height: 16),
 
           // Error message
           Consumer<VpnProvider>(

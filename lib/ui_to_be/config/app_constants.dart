@@ -24,6 +24,7 @@ sealed class AppConstants {
   static const String registerEndpoint = '$supabaseUrl/functions/v1/register';
   static const String logoutEndpoint = '$supabaseUrl/functions/v1/logout';
   static const String vpnConnectEndpoint = '$supabaseUrl/functions/v1/vpn_connect';
+  static const String getUsageEndpoint = '$supabaseUrl/functions/v1/get_usage';
   static const String getProfileEndpoint = '$supabaseUrl/functions/v1/get_profile';
   static const String storageGatewayEndpoint = '$supabaseUrl/functions/v1/storage-gateway';
 
