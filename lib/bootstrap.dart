@@ -26,6 +26,11 @@ import 'package:hiddify/features/window/notifier/window_notifier.dart';
 import 'package:hiddify/hiddifycore/hiddify_core_service_provider.dart';
 import 'package:hiddify/riverpod_observer.dart';
 import 'package:hiddify/utils/utils.dart';
+import 'package:hiddify/ui_to_be/services/release_service.dart';
+import 'package:hiddify/ui_to_be/config/app_constants.dart';
+import 'package:hiddify/core/router/go_router/go_router_notifier.dart';
+import 'package:hiddify/utils/uri_utils.dart';
+import 'package:version/version.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
@@ -118,10 +123,81 @@ Future<void> lazyBootstrap(WidgetsBinding widgetsBinding, Environment env) async
     ),
   );
 
+  // After the first frame, check for DB-driven release info and show update UI if needed.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    _checkDbReleaseAndShowIfNeeded(container);
+  });
+
   if (!kIsWeb) {
     FlutterNativeSplash.remove();
   }
   // SentryFlutter.s(DateTime.now().toUtc());
+}
+
+Future<void> _checkDbReleaseAndShowIfNeeded(ProviderContainer container) async {
+  try {
+    final release = await ReleaseService.fetchLatestRelease();
+    if (release == null) return;
+
+    Version? latest;
+    Version? current;
+    try {
+      latest = Version.parse(release.version);
+    } catch (_) {
+      return; // ignore unparsable remote version
+    }
+    try {
+      current = Version.parse(AppConstants.appVersion);
+    } catch (_) {
+      return;
+    }
+
+    if (latest <= current) return;
+
+    final now = DateTime.now().toUtc();
+    final pastLastUse = release.lastUsableDate != null && now.isAfter(release.lastUsableDate!);
+
+    final ctx = rootNavKey.currentContext;
+    if (ctx == null) return;
+
+    // Build dialog content
+    final title = pastLastUse ? 'Update required' : 'Update available';
+    final message = pastLastUse
+        ? 'This app version is no longer supported. Please update to continue.'
+        : 'A new version (${release.version}) is available. Would you like to update now?';
+
+    // show a blocking dialog for required update, otherwise allow dismiss
+    await showDialog<void>(
+      context: ctx,
+      barrierDismissible: !pastLastUse,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              final url = (release.downloadUrl != null && release.downloadUrl!.isNotEmpty)
+                  ? release.downloadUrl!
+                  : AppConstants.portalDownloadsUrl;
+              await UriUtils.tryLaunch(Uri.parse(url));
+            },
+            child: const Text('Update now'),
+          ),
+          if (!pastLastUse) TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Later')),
+          if (pastLastUse)
+            TextButton(
+              onPressed: () {
+                // force quit
+                exit(0);
+              },
+              child: const Text('Exit'),
+            ),
+        ],
+      ),
+    );
+  } catch (_) {
+    // ignore
+  }
 }
 
 Future<T> _init<T>(String name, Future<T> Function() initializer, {int? timeout}) async {
