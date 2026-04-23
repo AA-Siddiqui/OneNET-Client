@@ -76,8 +76,7 @@ jobs:
           - platform: windows
             os: windows-latest
             aarch: amd64
-            # targets: exe,msix,zip
-            targets: zip
+            targets: exe,msix,zip
 
           # - platform: linux
           #   os: ubuntu-22.04
@@ -104,10 +103,10 @@ jobs:
           #   aarch: arm64
           #   targets: deb,gz
             
-          # - platform: macos
-          #   os: macos-15
-          #   aarch: universal
-          #   targets: dmg,pkg
+          - platform: macos
+            os: macos-15
+            aarch: universal
+            targets: dmg,pkg
             
           # - platform: ios
           #   os: macos-15
@@ -119,21 +118,21 @@ jobs:
       - name: checkout
         uses: actions/checkout@v6
 
-      - name: Import Apple Codesign Certificates
-        if: ${{ inputs.upload-artifact && startsWith(matrix.os,'macos') }}
-        uses: apple-actions/import-codesign-certs@v6
-        with: 
-            p12-file-base64: "${{ secrets.APPLE_CERTIFICATE_P12 }}"
-            p12-password: "${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}"
+      # - name: Import Apple Codesign Certificates
+      #   if: ${{ inputs.upload-artifact && startsWith(matrix.os,'macos') }}
+      #   uses: apple-actions/import-codesign-certs@v6
+      #   with: 
+      #       p12-file-base64: "${{ secrets.APPLE_CERTIFICATE_P12 }}"
+      #       p12-password: "${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}"
 
-      - name: Import Apple Mobile Provisioning Profile
-        if: ${{ inputs.upload-artifact && startsWith(matrix.os,'macos') }}
-        run: |
-           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-           echo "${{secrets.APPLE_MOBILE_PROVISIONING_PROFILES_TARGZ_BASE64}}"|base64 --decode | tar xz -C ~/Library/MobileDevice/Provisioning\ Profiles
-           ls ~/Library/MobileDevice/Provisioning\ Profiles
-           security unlock-keychain -p "" signing_temp.keychain
-           security find-identity -v -p codesigning
+      # - name: Import Apple Mobile Provisioning Profile
+      #   if: ${{ inputs.upload-artifact && startsWith(matrix.os,'macos') }}
+      #   run: |
+      #      mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+      #      echo "${{secrets.APPLE_MOBILE_PROVISIONING_PROFILES_TARGZ_BASE64}}"|base64 --decode | tar xz -C ~/Library/MobileDevice/Provisioning\ Profiles
+      #      ls ~/Library/MobileDevice/Provisioning\ Profiles
+      #      security unlock-keychain -p "" signing_temp.keychain
+      #      security find-identity -v -p codesigning
         #   ls ~/Library/MobileDevice/Provisioning\ Profiles
         #   echo "${{secrets.NEW_APPLE_MOBILE_PROVISIONING_PROFILES_TARXZ_BASE64}}"|base64 --decode | tar xJ -C ~/Library/MobileDevice/Provisioning\ Profiles
         #   # echo "${{secrets.NEW_APPLE_MOBILE_PROVISIONING_PROFILES_TARGZ_BASE64_2}}"|base64 --decode | tar xz -C ~/Library/MobileDevice/Provisioning\ Profiles
@@ -358,11 +357,11 @@ jobs:
           path: ./out
           retention-days: 1
 
-      - name: Clean up keychain and provisioning profile
-        if: ${{ always() && startsWith(matrix.os,'macos')}}
-        run: |
-          security delete-keychain $RUNNER_TEMP/app-signing.keychain-db ||echo ok
-          rm ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision ||echo ok
+      # - name: Clean up keychain and provisioning profile
+      #   if: ${{ always() && startsWith(matrix.os,'macos')}}
+      #   run: |
+      #     security delete-keychain $RUNNER_TEMP/app-signing.keychain-db ||echo ok
+      #     rm ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision ||echo ok
   update-draft:
     permissions: write-all
     if: ${{ inputs.upload-artifact }}
