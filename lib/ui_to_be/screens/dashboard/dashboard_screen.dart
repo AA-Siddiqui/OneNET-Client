@@ -227,7 +227,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       if (isPermissionPrompt) ...[
                         const SizedBox(height: 10),
                         Text(
-                          'Tap below to request VPN permission again.',
+                          'Tap below to request permission again.',
                           style: AppTextStyles.bodySmall.copyWith(color: AppColors.textDim),
                         ),
                         const SizedBox(height: 10),
@@ -254,10 +254,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             side: BorderSide(color: AppColors.gold.withValues(alpha: 0.6)),
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                           ),
-                          child: Text(
-                            'Grant VPN Permission',
-                            style: AppTextStyles.mono.copyWith(color: AppColors.gold),
-                          ),
+                          child: Text('Grant Permission', style: AppTextStyles.mono.copyWith(color: AppColors.gold)),
                         ),
                       ],
                     ],

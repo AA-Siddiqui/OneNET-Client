@@ -107,7 +107,7 @@ class CurrentAppBridge {
       final normalized = configContent.trim();
       final normalizedPreferredProfileName = preferredProfileName?.trim() ?? '';
       if (normalized.isEmpty) {
-        throw const CurrentAppBridgeException('VPN configuration is empty.');
+        throw const CurrentAppBridgeException('Configuration is empty.');
       }
 
       final profileRepository = await _readContainer.read(profileRepositoryProvider.future);

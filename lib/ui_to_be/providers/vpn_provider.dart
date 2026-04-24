@@ -112,7 +112,7 @@ class VpnProvider extends ChangeNotifier {
 
       final serverIp = _selectedServer.publicIp.trim();
       if (serverIp.isEmpty) {
-        throw const VpnException('Please select a VPN server.');
+        throw const VpnException('Please select a server.');
       }
 
       VpnTraceLogger.log(
@@ -212,7 +212,7 @@ class VpnProvider extends ChangeNotifier {
     } on VpnException catch (error) {
       _nodesErrorMessage = error.message;
     } catch (_) {
-      _nodesErrorMessage = 'Failed to load VPN nodes';
+      _nodesErrorMessage = 'Failed to load nodes';
     } finally {
       _isLoadingServers = false;
       notifyListeners();

@@ -60,7 +60,7 @@ class NoPlanScreen extends StatelessWidget {
 
                       Text(
                         'Your account does not have an active subscription. '
-                        'Start a VPN trial or subscribe to a paid plan on the eCG portal to continue.',
+                        'Start a trial or subscribe to a paid plan on the eCG portal to continue.',
                         textAlign: TextAlign.center,
                         style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textDim, height: 1.6),
                       ).animate().fadeIn(duration: 500.ms, delay: 200.ms),
@@ -75,7 +75,7 @@ class NoPlanScreen extends StatelessWidget {
                             Text('// TRIAL PLANS', style: AppTextStyles.monoSmall.copyWith(color: AppColors.textDim)),
                             const SizedBox(height: 16),
                             const _PlanRow(
-                              name: 'VPN 7-DAY TRIAL',
+                              name: '7-DAY TRIAL',
                               price: 'FREE',
                               description: 'No card required · one-time trial',
                               icon: LucideIcons.clock3,
@@ -83,7 +83,7 @@ class NoPlanScreen extends StatelessWidget {
                             ),
                             const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider(height: 1)),
                             const _PlanRow(
-                              name: 'VPN 1-MONTH TRIAL',
+                              name: '1-MONTH TRIAL',
                               price: 'HK\$0 now',
                               description: 'Card required · auto-reminder before trial end',
                               icon: LucideIcons.creditCard,
@@ -108,14 +108,14 @@ class NoPlanScreen extends StatelessWidget {
                             const _PlanRow(
                               name: 'VPS BASIC',
                               price: 'HK\$78/mo',
-                              description: 'Personal VPN tunnel',
+                              description: 'Personal tunnel',
                               icon: LucideIcons.shield,
                             ),
                             const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider(height: 1)),
                             const _PlanRow(
                               name: 'CLOUD GAMING',
                               price: 'HK\$148/mo',
-                              description: 'VPN + Cloud game streaming',
+                              description: 'Basic + Cloud game streaming',
                               icon: LucideIcons.gamepad2,
                             ),
                           ],

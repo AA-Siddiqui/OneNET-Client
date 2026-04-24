@@ -1,12 +1,12 @@
-import '../enums/plan_type.dart';
-import '../enums/subscription_status.dart';
-import '../models/user_model.dart';
-import '../models/subscription_model.dart';
-import '../models/server_model.dart';
+import 'package:hiddify/ui_to_be/enums/plan_type.dart';
+import 'package:hiddify/ui_to_be/enums/subscription_status.dart';
+import 'package:hiddify/ui_to_be/models/server_model.dart';
+import 'package:hiddify/ui_to_be/models/subscription_model.dart';
+import 'package:hiddify/ui_to_be/models/user_model.dart';
 
 sealed class MockData {
   // Cloud Gaming user — sees all features
-  static final UserModel cloudGamingUser = UserModel(
+  static const UserModel cloudGamingUser = UserModel(
     id: 'usr_001',
     email: 'gamer@example.com',
     username: 'gamer01',
@@ -21,11 +21,11 @@ sealed class MockData {
   );
 
   // VPS Basic user — no cloud gaming
-  static final UserModel vpsUser = UserModel(
+  static const UserModel vpsUser = UserModel(
     id: 'usr_002',
-    email: 'vpnuser@example.com',
-    username: 'vpnuser02',
-    displayName: 'VPN User',
+    email: 'onenetuser@example.com',
+    username: 'onenetuser02',
+    displayName: 'User',
   );
 
   static final SubscriptionModel vpsSubscription = SubscriptionModel(
@@ -39,7 +39,7 @@ sealed class MockData {
   static final SubscriptionModel expiredSubscription = SubscriptionModel(
     planType: PlanType.standard,
     status: SubscriptionStatus.expired,
-    renewalDate: DateTime(2026, 3, 1),
+    renewalDate: DateTime(2026, 3),
     priceHkd: 78.0,
   );
 

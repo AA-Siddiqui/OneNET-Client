@@ -23,7 +23,7 @@ class ServerModel {
       id: (json['id'] as String? ?? '').trim(),
       name: hostname.isNotEmpty ? hostname : region,
       region: region,
-      nodeId: hostname.isNotEmpty ? hostname.toUpperCase() : 'VPN-NODE',
+      nodeId: hostname.isNotEmpty ? hostname.toUpperCase() : 'NODE',
       publicIp: (json['public_ip'] as String? ?? '').trim(),
       isAvailable: json['is_online'] as bool? ?? true,
     );

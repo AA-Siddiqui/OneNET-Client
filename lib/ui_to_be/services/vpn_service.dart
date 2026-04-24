@@ -36,7 +36,7 @@ class VpnService {
       throw const VpnException('Please sign in to connect.');
     }
     if (normalizedServerIp.isEmpty) {
-      throw const VpnException('Please select a VPN server.');
+      throw const VpnException('Please select a server.');
     }
 
     final response = await http.post(
@@ -60,19 +60,19 @@ class VpnService {
         _extractErrorMessage(body) ??
             (response.statusCode == 401
                 ? 'Session expired. Please sign in again.'
-                : 'Failed to provision VPN configuration.'),
+                : 'Failed to provision configuration.'),
       );
     }
 
     if (body == null) {
-      throw const VpnException('Invalid VPN response from server.');
+      throw const VpnException('Invalid response from server.');
     }
 
     final serverConfig = _safeString(body['config']);
     final vlessLink = _safeString(body['vless_link']);
     final preferredConfig = vlessLink.isNotEmpty ? vlessLink : serverConfig;
     if (preferredConfig.isEmpty) {
-      throw const VpnException('VPN configuration is missing in server response.');
+      throw const VpnException('Configuration is missing in server response.');
     }
 
     final peer = _asStringMap(body['peer']);
@@ -125,10 +125,10 @@ class VpnService {
       throw VpnException(bridgeError.message);
     }
     if (unexpectedError != null) {
-      throw VpnException('Failed to apply VPN configuration: $unexpectedError');
+      throw VpnException('Failed to apply configuration: $unexpectedError');
     }
 
-    throw const VpnException('Failed to apply VPN configuration.');
+    throw const VpnException('Failed to apply configuration.');
   }
 
   static Future<List<ServerModel>> fetchVpnNodes() async {
@@ -138,12 +138,12 @@ class VpnService {
     );
 
     if (response.statusCode != 200) {
-      throw const VpnException('Failed to load VPN nodes');
+      throw const VpnException('Failed to load nodes');
     }
 
     final decoded = _decodeJson(response.body);
     if (decoded is! List) {
-      throw const VpnException('Invalid VPN nodes response');
+      throw const VpnException('Invalid nodes response');
     }
 
     return decoded
@@ -170,7 +170,7 @@ class VpnService {
     if (response.statusCode != 200 || body == null || body['success'] != true) {
       throw VpnException(
         _extractErrorMessage(body) ??
-            (response.statusCode == 401 ? 'Session expired. Please sign in again.' : 'Failed to load VPN usage.'),
+            (response.statusCode == 401 ? 'Session expired. Please sign in again.' : 'Failed to load usage.'),
       );
     }
 

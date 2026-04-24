@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:hiddify/ui_to_be/theme/app_colors.dart';
+import 'package:hiddify/ui_to_be/theme/app_text_styles.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text_styles.dart';
 
 class AppScaffoldWrapper extends StatefulWidget {
   final List<Widget> screens;
@@ -21,7 +21,7 @@ class _AppScaffoldWrapperState extends State<AppScaffoldWrapper> {
       body: IndexedStack(index: _currentIndex, children: widget.screens),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: AppColors.border, width: 1)),
+          border: Border(top: BorderSide(color: AppColors.border)),
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
@@ -37,7 +37,7 @@ class _AppScaffoldWrapperState extends State<AppScaffoldWrapper> {
             BottomNavigationBarItem(
               icon: Icon(LucideIcons.shield),
               activeIcon: Icon(LucideIcons.shieldCheck),
-              label: 'VPN',
+              label: 'OneNET',
             ),
             BottomNavigationBarItem(
               icon: Icon(LucideIcons.settings),

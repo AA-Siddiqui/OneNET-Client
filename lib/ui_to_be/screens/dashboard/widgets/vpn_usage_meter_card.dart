@@ -70,7 +70,7 @@ class _VpnUsageMeterCardState extends State<VpnUsageMeterCard> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error = 'Failed to load VPN usage.';
+        _error = 'Failed to load usage.';
       });
     } finally {
       if (!mounted) return;
@@ -107,7 +107,7 @@ class _VpnUsageMeterCardState extends State<VpnUsageMeterCard> {
         children: [
           Row(
             children: [
-              Text('MONTHLY VPN DATA', style: AppTextStyles.mono.copyWith(color: AppColors.accentBright)),
+              Text('MONTHLY DATA', style: AppTextStyles.mono.copyWith(color: AppColors.accentBright)),
               const Spacer(),
               if (_isLoading)
                 const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
