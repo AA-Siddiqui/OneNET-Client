@@ -9,6 +9,8 @@ import 'package:hiddify/ui_to_be/providers/vpn_provider.dart';
 import 'package:hiddify/ui_to_be/services/network_speed_service.dart';
 import 'package:hiddify/ui_to_be/theme/app_colors.dart';
 import 'package:hiddify/ui_to_be/theme/app_text_styles.dart';
+import 'package:hiddify/ui_to_be/services/storage_service.dart';
+import 'dart:math';
 
 /// Maximum number of data-points visible in the graph (60 s window @ 1 Hz).
 const _maxDataPoints = 60;
@@ -39,13 +41,15 @@ class _SpeedIndicatorState extends State<SpeedIndicator> {
     super.dispose();
   }
 
-  void _start() {
+  Future<void> _start() async {
+    final persistedDownloadSpeed = await StorageService.getTopDownloadSpeed() ?? 0;
+    final persistedUploadSpeed = await StorageService.getTopDownloadSpeed() ?? 0;
     _service.start();
     _sub ??= _service.speedStream.listen((s) {
       if (!mounted) return;
       setState(() {
-        _download = s.downloadMbps;
-        _upload = s.uploadMbps;
+        _download = max(persistedDownloadSpeed, max(_download, s.downloadMbps));
+        _upload = max(persistedUploadSpeed, max(_upload, s.uploadMbps));
         _dlHistory.addLast(s.downloadMbps);
         _ulHistory.addLast(s.uploadMbps);
         if (_dlHistory.length > _maxDataPoints) _dlHistory.removeFirst();
@@ -54,10 +58,12 @@ class _SpeedIndicatorState extends State<SpeedIndicator> {
     });
   }
 
-  void _stop() {
+  Future<void> _stop() async {
     _sub?.cancel();
     _sub = null;
     _service.stop();
+    await StorageService.saveTopDownloadSpeed(0);
+    await StorageService.saveTopUploadSpeed(0);
     setState(() {
       _download = 0;
       _upload = 0;

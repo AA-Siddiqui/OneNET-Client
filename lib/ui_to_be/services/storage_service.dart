@@ -8,6 +8,28 @@ class StorageService {
   static const _firstTimeGamingKey = 'first_time_gaming';
   static const _lastSelectedVpnServerKey = 'last_selected_vpn_server';
   static const _vpnConnectedSinceKey = 'vpn_connected_since';
+  static const _topDownSpeedKey = 'top_download_speed';
+  static const _topUpSpeedKey = 'top_upload_speed';
+
+  static Future<void> saveTopDownloadSpeed(double speed) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_topDownSpeedKey, speed);
+  }
+
+  static Future<double?> getTopDownloadSpeed() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getDouble(_topDownSpeedKey);
+  }
+
+  static Future<void> saveTopUploadSpeed(double speed) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_topUpSpeedKey, speed);
+  }
+
+  static Future<double?> getTopUploadSpeed() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getDouble(_topUpSpeedKey);
+  }
 
   static Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
