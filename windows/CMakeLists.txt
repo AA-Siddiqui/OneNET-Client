@@ -81,17 +81,32 @@ install(FILES "${FLUTTER_ICU_DATA_FILE}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}
 install(FILES "${FLUTTER_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
   COMPONENT Runtime)
 
-# install(FILES "../hiddify-core/bin/hiddify-core.dll" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
-#  COMPONENT Runtime)
+# Define the hiddify-core binaries directory
+set(HIDDIFY_CORE_BIN_DIR "${CMAKE_SOURCE_DIR}/../hiddify-core/bin")
 
-install(FILES "../hiddify-core/bin/hiddify-core.dll" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
-COMPONENT Runtime RENAME hiddify-core.dll)
+# Install hiddify-core DLL
+if(EXISTS "${HIDDIFY_CORE_BIN_DIR}/hiddify-core.dll")
+  install(FILES "${HIDDIFY_CORE_BIN_DIR}/hiddify-core.dll"
+    DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+    COMPONENT Runtime
+    RENAME hiddify-core.dll)
+endif()
 
-install(FILES "../hiddify-core/bin/libcronet.dll" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
-COMPONENT Runtime RENAME libcronet.dll)
+# Install libcronet DLL
+if(EXISTS "${HIDDIFY_CORE_BIN_DIR}/libcronet.dll")
+  install(FILES "${HIDDIFY_CORE_BIN_DIR}/libcronet.dll"
+    DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+    COMPONENT Runtime
+    RENAME libcronet.dll)
+endif()
 
-install(FILES "../hiddify-core/bin/HiddifyCli.exe" DESTINATION "${CMAKE_INSTALL_PREFIX}"
-COMPONENT Runtime RENAME HiddifyCli.exe)
+# Install HiddifyCli executable
+if(EXISTS "${HIDDIFY_CORE_BIN_DIR}/HiddifyCli.exe")
+  install(FILES "${HIDDIFY_CORE_BIN_DIR}/HiddifyCli.exe"
+    DESTINATION "${CMAKE_INSTALL_PREFIX}"
+    COMPONENT Runtime
+    RENAME HiddifyCli.exe)
+endif()
 
 
 if(PLUGIN_BUNDLED_LIBRARIES)
