@@ -74,11 +74,18 @@ class CloudDriveMountService {
     }
 
     for (final target in targets) {
-      final result = await Process.run(
-        'net',
-        ['use', '$driveLetter:', target, '/user:$_mountUser', token, '/persistent:no'],
-        runInShell: true,
-      ).timeout(_commandTimeout, onTimeout: () => ProcessResult(0, 124, '', 'timeout'));
+      final result = await Process.run('net', [
+        'use',
+        '$driveLetter:',
+        target,
+        '/user:$_mountUser',
+        token,
+        '/persistent:no',
+      ], runInShell: true).timeout(_commandTimeout, onTimeout: () => ProcessResult(0, 124, '', 'timeout'));
+
+      print(
+        "net use $driveLetter: $target /user:$_mountUser $token /persistent:no => ${result.exitCode} ${result.stdout} ${result.stderr}",
+      );
 
       if (result.exitCode == 0) {
         return;
@@ -88,11 +95,12 @@ class CloudDriveMountService {
 
   static Future<void> _deleteMapping(String driveLetter) async {
     try {
-      await Process.run(
-        'net',
-        ['use', '$driveLetter:', '/delete', '/y'],
-        runInShell: true,
-      ).timeout(_commandTimeout, onTimeout: () => ProcessResult(0, 124, '', 'timeout'));
+      await Process.run('net', [
+        'use',
+        '$driveLetter:',
+        '/delete',
+        '/y',
+      ], runInShell: true).timeout(_commandTimeout, onTimeout: () => ProcessResult(0, 124, '', 'timeout'));
     } catch (_) {}
   }
 
@@ -119,6 +127,6 @@ class CloudDriveMountService {
 
     final pathSegments = endpoint.pathSegments.where((segment) => segment.trim().isNotEmpty).toList(growable: false);
     final pathSuffix = pathSegments.isEmpty ? '' : '\\${pathSegments.join('\\')}';
-    return '\\\\${hostPart.toString()}\\DavWWWRoot$pathSuffix';
+    return '\\\\$hostPart\\DavWWWRoot$pathSuffix';
   }
 }
