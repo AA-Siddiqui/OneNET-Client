@@ -3,6 +3,18 @@ import 'dart:io';
 import 'package:hiddify/ui_to_be/config/app_constants.dart';
 import 'package:hiddify/ui_to_be/services/cloud_storage_service.dart';
 import 'package:hiddify/utils/platform_utils.dart';
+import 'package:path_provider/path_provider.dart';
+
+Future<void> writeToFile(String text) async {
+  // 1. Get the application documents directory
+  final directory = await getApplicationDocumentsDirectory();
+
+  // 2. Create a reference to the file
+  final file = File('${directory.path}/my_file.txt');
+
+  // 3. Write the string to the file
+  await file.writeAsString(text);
+}
 
 class CloudDriveMountService {
   static const String _mountUser = 'onenet';
@@ -83,7 +95,7 @@ class CloudDriveMountService {
         '/persistent:no',
       ], runInShell: true).timeout(_commandTimeout, onTimeout: () => ProcessResult(0, 124, '', 'timeout'));
 
-      print(
+      writeToFile(
         "net use $driveLetter: $target /user:$_mountUser $token /persistent:no => ${result.exitCode} ${result.stdout} ${result.stderr}",
       );
 
