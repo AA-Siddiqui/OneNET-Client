@@ -11,7 +11,7 @@ class AppVersionDisplay extends StatelessWidget {
     return Center(
       child: Column(
         children: [
-          Image.asset('assets/ui-to-be/assets/images/logo.png', width: 40, height: 40, fit: BoxFit.contain),
+          Image.asset('assets/ui-to-be/new_assets/images/logo.png', width: 40, height: 40, fit: BoxFit.contain),
           const SizedBox(height: 8),
           Text(AppConstants.appFullName, style: AppTextStyles.monoSmall.copyWith(color: AppColors.textDim)),
           const SizedBox(height: 2),

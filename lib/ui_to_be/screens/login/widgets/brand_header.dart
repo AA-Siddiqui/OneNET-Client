@@ -9,7 +9,7 @@ class BrandHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Image.asset('assets/ui-to-be/assets/images/logo.png', width: 120, height: 120, fit: BoxFit.contain),
+        Image.asset('assets/ui-to-be/new_assets/images/logo.png', width: 120, height: 120, fit: BoxFit.contain),
         const SizedBox(height: 16),
         Text('// AUTHENTICATE', style: AppTextStyles.monoSmall.copyWith(color: AppColors.textDim)),
       ],

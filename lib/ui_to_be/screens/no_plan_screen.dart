@@ -42,7 +42,7 @@ class NoPlanScreen extends StatelessWidget {
                             ),
                             child: Padding(
                               padding: const EdgeInsets.all(16),
-                              child: Image.asset('assets/ui-to-be/assets/images/logo.png', fit: BoxFit.contain),
+                              child: Image.asset('assets/ui-to-be/new_assets/images/logo.png', fit: BoxFit.contain),
                             ),
                           )
                           .animate()

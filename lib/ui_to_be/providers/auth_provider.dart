@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../services/auth_service.dart';
+import '../services/cloud_drive_mount_service.dart';
 import '../services/storage_service.dart';
 
 class AuthProvider extends ChangeNotifier {
@@ -29,6 +30,7 @@ class AuthProvider extends ChangeNotifier {
       _loginData = result;
       _isAuthenticated = true;
       await StorageService.saveToken(_token!);
+      await CloudDriveMountService.ensureMounted(_token);
     } on AuthException catch (e) {
       _errorMessage = e.message;
     } catch (e) {
@@ -48,6 +50,7 @@ class AuthProvider extends ChangeNotifier {
         await AuthService.logout(_token!);
       }
     } finally {
+      await CloudDriveMountService.unmount();
       _isAuthenticated = false;
       _token = null;
       _errorMessage = null;
@@ -67,10 +70,12 @@ class AuthProvider extends ChangeNotifier {
       _token = storedToken;
       _loginData = profileData;
       _isAuthenticated = true;
+      await CloudDriveMountService.ensureMounted(_token);
       notifyListeners();
       return true;
     }
 
+    await CloudDriveMountService.unmount();
     await StorageService.clearToken();
     return false;
   }

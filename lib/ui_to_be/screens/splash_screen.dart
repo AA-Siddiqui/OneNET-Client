@@ -170,7 +170,7 @@ class _SplashScreenState extends State<SplashScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Image.asset(
-                'assets/ui-to-be/assets/images/logo.png',
+                'assets/ui-to-be/new_assets/images/logo.png',
                 width: 300,
                 fit: BoxFit.contain,
               ).animate().fadeIn(duration: 600.ms),

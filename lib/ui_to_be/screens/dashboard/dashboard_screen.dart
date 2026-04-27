@@ -293,7 +293,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('ONE STORAGE', style: AppTextStyles.heading2.copyWith(letterSpacing: 1.4)),
+          Text('eCG:', style: AppTextStyles.heading2.copyWith(letterSpacing: 1.4)),
           const SizedBox(height: 6),
           Text(
             'Cloud files workspace powered by your plan permissions.',

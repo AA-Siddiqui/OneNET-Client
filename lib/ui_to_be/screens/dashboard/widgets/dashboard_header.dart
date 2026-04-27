@@ -36,10 +36,10 @@ class DashboardHeader extends StatelessWidget {
         final Color tabsBorder = oneMailTheme ? _oneMailBorder : AppColors.border;
         final Color tabInactive = oneMailTheme ? _oneMailMuted : AppColors.textDim;
         final String suiteLogo = oneMailTheme
-            ? 'assets/ui-to-be/assets/images/onemail_full_logo_cropped.png'
+            ? 'assets/ui-to-be/new_assets/images/onemail_full_logo_cropped.png'
             : selectedTab == DashboardSuiteTab.oneNet
-            ? 'assets/ui-to-be/assets/images/full_logo_cropped.png'
-            : 'assets/ui-to-be/assets/images/logo.png';
+            ? 'assets/ui-to-be/new_assets/images/full_logo_cropped.png'
+            : 'assets/ui-to-be/new_assets/images/ecg_storage.png';
         final double suiteLogoWidth = oneMailTheme ? 172 : 160;
         final double suiteLogoHeight = oneMailTheme ? 60 : 56;
 
@@ -121,7 +121,7 @@ class DashboardHeader extends StatelessWidget {
                       const SizedBox(width: 6),
                       Expanded(
                         child: _SuiteTabButton(
-                          label: 'OneSTORAGE',
+                          label: 'eCG:',
                           isSelected: selectedTab == DashboardSuiteTab.oneStorage,
                           activeColor: oneMailTheme ? _oneMailBlue : AppColors.accentBright,
                           inactiveColor: tabInactive,

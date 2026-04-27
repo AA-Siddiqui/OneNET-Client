@@ -27,6 +27,8 @@ sealed class AppConstants {
   static const String getUsageEndpoint = '$supabaseUrl/functions/v1/get_usage';
   static const String getProfileEndpoint = '$supabaseUrl/functions/v1/get_profile';
   static const String storageGatewayEndpoint = '$supabaseUrl/functions/v1/storage-gateway';
+  static const String storageWebDavEndpoint = '$supabaseUrl/functions/v1/storage-webdav';
+  static const String cloudDriveLetter = 'O';
 
   static const String vpnNodesEndpoint =
       '$supabaseUrl/rest/v1/vpn_nodes?select=id,hostname,public_ip,region,is_online&is_online=eq.true&order=created_at.asc';
