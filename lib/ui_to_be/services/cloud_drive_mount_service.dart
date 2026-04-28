@@ -115,16 +115,26 @@ class CloudDriveMountService {
 
   static Future<void> _deleteMapping(String driveLetter) async {
     try {
-      await Process.run(
-        'schtasks /create /tn "DeleteTask" /tr "cmd.exe /c net use $driveLetter: /delete /y" /sc once /st 00:00 /rl LIMITED',
-        [],
-        runInShell: true,
-      ).timeout(_commandTimeout, onTimeout: () => ProcessResult(0, 124, '', 'timeout'));
-      await Process.run(
-        'schtasks /run /tn "DeleteTask"',
-        [],
-        runInShell: true,
-      ).timeout(_commandTimeout, onTimeout: () => ProcessResult(0, 124, '', 'timeout'));
+      await Process.run("schtasks", [
+        "/create",
+        "/tn",
+        "DeleteTask",
+        "/tr",
+        'cmd.exe /c "net use $driveLetter: /delete /y"',
+        "/sc",
+        "once",
+        "/st",
+        "23:59",
+        "/rl",
+        "LIMITED",
+        "/f",
+      ], runInShell: true).timeout(_commandTimeout, onTimeout: () => ProcessResult(0, 124, "", "timeout"));
+
+      await Process.run("schtasks", [
+        "/run",
+        "/tn",
+        "DeleteTask",
+      ], runInShell: true).timeout(_commandTimeout, onTimeout: () => ProcessResult(0, 124, "", "timeout"));
     } catch (_) {}
   }
 
