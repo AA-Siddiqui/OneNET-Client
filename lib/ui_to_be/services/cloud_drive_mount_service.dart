@@ -86,16 +86,22 @@ class CloudDriveMountService {
     }
 
     for (final target in targets) {
-      await Process.run(
-        'schtasks /create /tn "CreateTask" /tr "cmd.exe /c net use $driveLetter: $target /user:$_mountUser $token /persistent:no" /sc once /st 00:00 /rl LIMITED',
-        [],
-        runInShell: true,
-      ).timeout(_commandTimeout, onTimeout: () => ProcessResult(0, 124, '', 'timeout'));
-      final result = await Process.run(
-        'schtasks /run /tn "CreateTask"',
-        [],
-        runInShell: true,
-      ).timeout(_commandTimeout, onTimeout: () => ProcessResult(0, 124, '', 'timeout'));
+      await Process.run("schtasks", [
+        "/create",
+        "/tn",
+        "CreateTask",
+        "/tr",
+        'cmd.exe /c "net use $driveLetter: $target /user:$_mountUser $token /persistent:no"',
+        "/sc",
+        "once",
+        "/st",
+        "00:00",
+        "/rl",
+        "LIMITED",
+        "/f",
+      ], runInShell: true);
+
+      final result = await Process.run("schtasks", ["/run", "/tn", "CreateTask"], runInShell: true);
 
       writeToFile(
         "net use $driveLetter: $target /user:$_mountUser $token /persistent:no => ${result.exitCode} ${result.stdout} ${result.stderr}",
