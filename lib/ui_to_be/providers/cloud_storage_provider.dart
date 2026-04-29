@@ -296,12 +296,14 @@ class CloudStorageProvider extends ChangeNotifier {
         throw const CloudStorageException('Share link could not be created.');
       }
 
-      final buffer = StringBuffer('Shared from OneNET cloud storage\n');
+      final buffer = StringBuffer('Shared from eCG:\n');
       for (final link in links) {
         if (link.email != null && link.email!.isNotEmpty) {
-          buffer.writeln('${link.email}: ${link.url}');
+          buffer.writeln(
+            '${link.email}: ${link.url.replaceFirst("/storage-gateway", "/functions/v1/storage-gateway")}',
+          );
         } else {
-          buffer.writeln(link.url);
+          buffer.writeln(link.url.replaceFirst("/storage-gateway", "/functions/v1/storage-gateway"));
         }
       }
 

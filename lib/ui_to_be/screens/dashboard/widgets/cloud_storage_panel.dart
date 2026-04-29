@@ -188,23 +188,23 @@ class _CloudStoragePanelState extends State<CloudStoragePanel> {
                     onChanged: (value) => setState(() => restrictToEmails = value ?? false),
                     title: const Text('Anyone with the link'),
                   ),
-                  RadioListTile<bool>(
-                    value: true,
-                    groupValue: restrictToEmails,
-                    onChanged: (value) => setState(() => restrictToEmails = value ?? false),
-                    title: const Text('Only specific emails'),
-                  ),
-                  if (restrictToEmails) ...[
-                    TextField(
-                      controller: emailController,
-                      decoration: InputDecoration(
-                        labelText: 'Allowed emails',
-                        hintText: 'Enter emails separated by commas',
-                        errorText: errorText,
-                      ),
-                      maxLines: 2,
-                    ),
-                  ],
+                  // RadioListTile<bool>(
+                  //   value: true,
+                  //   groupValue: restrictToEmails,
+                  //   onChanged: (value) => setState(() => restrictToEmails = value ?? false),
+                  //   title: const Text('Only specific emails'),
+                  // ),
+                  // if (restrictToEmails) ...[
+                  //   TextField(
+                  //     controller: emailController,
+                  //     decoration: InputDecoration(
+                  //       labelText: 'Allowed emails',
+                  //       hintText: 'Enter emails separated by commas',
+                  //       errorText: errorText,
+                  //     ),
+                  //     maxLines: 2,
+                  //   ),
+                  // ],
                 ],
               ),
               actions: [
