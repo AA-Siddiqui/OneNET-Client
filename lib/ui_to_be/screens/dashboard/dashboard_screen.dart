@@ -20,6 +20,7 @@ import 'package:hiddify/ui_to_be/utils/vpn_trace.dart';
 import 'package:hiddify/ui_to_be/widgets/common/gradient_background.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart' show ProviderScope;
 import 'package:provider/provider.dart';
+import "package:url_launcher/url_launcher.dart";
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -277,7 +278,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               return CloudGamingButton(
                 onTap: () {
-                  Navigator.of(context).pushNamed(Routes.cloudGaming);
+                  showDialog(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        content: const Text("Click to open browser to https://www.eComGear.ai/single"),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text("Cancel")),
+                          ElevatedButton(
+                            onPressed: () async {
+                              Navigator.of(context).pop();
+                              final uri = Uri.parse("https://www.eComGear.ai/single");
+                              if (await canLaunchUrl(uri)) {
+                                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                              }
+                            },
+                            child: const Text("Go"),
+                          ),
+                        ],
+                      );
+                    },
+                  );
                 },
               ).animate().fadeIn(duration: 400.ms, delay: 400.ms);
             },

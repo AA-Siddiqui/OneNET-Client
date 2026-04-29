@@ -77,7 +77,7 @@ class _CloudGamingScreenState extends State<CloudGamingScreen> {
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                     const SizedBox(width: 4),
-                    Text('eCG GAMING', style: AppTextStyles.heading3.copyWith(letterSpacing: 2)),
+                    Text('eCG SINGLE', style: AppTextStyles.heading3.copyWith(letterSpacing: 2)),
                     const Spacer(),
                     Consumer<GameSessionProvider>(
                       builder: (context, session, _) {

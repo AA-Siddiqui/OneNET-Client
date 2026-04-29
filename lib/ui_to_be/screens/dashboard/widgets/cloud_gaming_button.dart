@@ -23,18 +23,15 @@ class CloudGamingButton extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(color: AppColors.goldDim, borderRadius: BorderRadius.circular(4)),
-              child: const Icon(LucideIcons.gamepad2, color: AppColors.gold, size: 22),
+              child: const Icon(LucideIcons.trendingUp, color: AppColors.gold, size: 22),
             ),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('eCG GAMING', style: AppTextStyles.heading3.copyWith(color: AppColors.gold)),
-                  Text(
-                    'Launch game session · Moonlight / Sunshine',
-                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.textDim),
-                  ),
+                  Text('eCG SINGLE', style: AppTextStyles.heading3.copyWith(color: AppColors.gold)),
+                  Text('Chat, Agents and GPU', style: AppTextStyles.bodySmall.copyWith(color: AppColors.textDim)),
                 ],
               ),
             ),
