@@ -10,6 +10,17 @@ import 'package:hiddify/ui_to_be/services/cloud_storage_service.dart';
 import 'package:hiddify/utils/platform_utils.dart';
 import 'package:share_plus/share_plus.dart';
 
+class CloudShareOptions {
+  final bool isPublic;
+  final List<String> emails;
+
+  const CloudShareOptions.public() : isPublic = true, emails = const [];
+
+  const CloudShareOptions.email(this.emails) : isPublic = false;
+
+  bool get hasEmails => emails.isNotEmpty;
+}
+
 class CloudStorageProvider extends ChangeNotifier {
   CloudStorageAccessModel? _access;
   List<CloudStorageFileModel> _files = const [];
@@ -136,26 +147,36 @@ class CloudStorageProvider extends ChangeNotifier {
     try {
       final latestAccess = await _ensureProAccess(normalized);
 
-      final picked = await FilePicker.platform.pickFiles(withData: true);
+      final picked = await FilePicker.platform.pickFiles(withData: true, allowMultiple: true);
       if (picked == null || picked.files.isEmpty) {
         _statusMessage = 'Upload cancelled.';
         return;
       }
 
-      final file = picked.files.first;
-      final bytes = file.bytes;
-      if (bytes == null || bytes.isEmpty) {
-        throw const CloudStorageException('Unable to read selected file.');
+      final files = picked.files
+          .where((file) => file.bytes != null && file.bytes!.isNotEmpty)
+          .map(
+            (file) => CloudStorageUploadFile(
+              fileName: (file.name.isEmpty ? 'upload.bin' : file.name).trim(),
+              bytes: file.bytes!,
+            ),
+          )
+          .toList(growable: false);
+
+      if (files.isEmpty) {
+        throw const CloudStorageException('Unable to read selected files.');
       }
 
-      if (bytes.length > latestAccess.remainingBytes) {
+      final totalBytes = files.fold<int>(0, (sum, file) => sum + file.bytes.length);
+      if (totalBytes > latestAccess.remainingBytes) {
         throw const CloudStorageException('Not enough storage left in your 10GB Pro quota.');
       }
 
-      final fileName = (file.name.isEmpty ? 'upload.bin' : file.name).trim();
-      await CloudStorageService.uploadFile(token: normalized, fileName: fileName, bytes: bytes, path: _currentPath);
+      await CloudStorageService.uploadFiles(token: normalized, files: files, path: _currentPath);
 
-      _statusMessage = '$fileName uploaded successfully.';
+      _statusMessage = files.length == 1
+          ? '${files.first.fileName} uploaded successfully.'
+          : '${files.length} files uploaded successfully.';
       _resetDirectoryCache();
       await refresh(normalized, force: true, path: _currentPath);
     } on CloudStorageException catch (error) {
@@ -246,7 +267,7 @@ class CloudStorageProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> shareEntry(String? token, CloudStorageFileModel entry) async {
+  Future<void> shareEntry(String? token, CloudStorageFileModel entry, CloudShareOptions options) async {
     final normalized = token?.trim();
     if (normalized == null || normalized.isEmpty || _isBusy) {
       return;
@@ -259,16 +280,33 @@ class CloudStorageProvider extends ChangeNotifier {
 
     try {
       await _ensureProAccess(normalized);
-      final downloaded = await _downloadEntry(normalized, entry);
-      final xFile = XFile.fromData(
-        Uint8List.fromList(downloaded.bytes),
-        name: downloaded.fileName,
-        mimeType: downloaded.contentType,
+      final share = await CloudStorageService.createShareLink(
+        token: normalized,
+        itemType: entry.isFolder ? 'folder' : 'file',
+        path: entry.key,
+        isPublic: options.isPublic,
+        emails: options.emails,
       );
-      final result = await Share.shareXFiles([xFile], text: 'Shared from OneNET cloud storage');
-      _statusMessage = result.status == ShareResultStatus.dismissed
-          ? 'Share cancelled.'
-          : 'Shared ${downloaded.fileName}';
+
+      final links = share.shareLinks.isNotEmpty
+          ? share.shareLinks
+          : (share.shareUrl == null ? const <CloudShareLink>[] : [CloudShareLink(url: share.shareUrl!)]);
+
+      if (links.isEmpty) {
+        throw const CloudStorageException('Share link could not be created.');
+      }
+
+      final buffer = StringBuffer('Shared from OneNET cloud storage\n');
+      for (final link in links) {
+        if (link.email != null && link.email!.isNotEmpty) {
+          buffer.writeln('${link.email}: ${link.url}');
+        } else {
+          buffer.writeln(link.url);
+        }
+      }
+
+      final result = await Share.share(buffer.toString().trim());
+      _statusMessage = result.status == ShareResultStatus.dismissed ? 'Share cancelled.' : 'Share link ready.';
     } on CloudStorageException catch (error) {
       _errorMessage = error.message;
     } catch (_) {

@@ -13,6 +13,38 @@ class DownloadedCloudFile {
   const DownloadedCloudFile({required this.bytes, required this.contentType, required this.fileName});
 }
 
+class CloudStorageUploadFile {
+  final String fileName;
+  final List<int> bytes;
+
+  const CloudStorageUploadFile({required this.fileName, required this.bytes});
+}
+
+class CloudShareLink {
+  final String url;
+  final String? email;
+
+  const CloudShareLink({required this.url, this.email});
+}
+
+class CloudShareResult {
+  final String token;
+  final String mode;
+  final String? shareUrl;
+  final DateTime? expiresAt;
+  final List<CloudShareLink> shareLinks;
+
+  const CloudShareResult({
+    required this.token,
+    required this.mode,
+    required this.shareUrl,
+    required this.expiresAt,
+    required this.shareLinks,
+  });
+
+  bool get isEmailRestricted => mode == 'email';
+}
+
 class CloudStorageService {
   static Map<String, String> _supabaseHeaders(String token) => {
     'x-auth-token': 'Bearer $token',
@@ -84,12 +116,30 @@ class CloudStorageService {
     required List<int> bytes,
     String path = '',
   }) async {
+    await uploadFiles(
+      token: token,
+      files: [CloudStorageUploadFile(fileName: fileName, bytes: bytes)],
+      path: path,
+    );
+  }
+
+  static Future<void> uploadFiles({
+    required String token,
+    required List<CloudStorageUploadFile> files,
+    String path = '',
+  }) async {
+    if (files.isEmpty) {
+      throw const CloudStorageException('No files selected for upload.');
+    }
+
     final request = http.MultipartRequest('POST', _gatewayUri('upload', {'path': path}));
     request.headers.addAll(_supabaseHeaders(token));
     if (path.trim().isNotEmpty) {
       request.fields['path'] = path;
     }
-    request.files.add(http.MultipartFile.fromBytes('file', bytes, filename: fileName));
+    for (final file in files) {
+      request.files.add(http.MultipartFile.fromBytes('file', file.bytes, filename: file.fileName));
+    }
 
     final streamedResponse = await request.send();
     final response = await http.Response.fromStream(streamedResponse);
@@ -106,6 +156,58 @@ class CloudStorageService {
     if (response.statusCode >= 400 || body['success'] != true) {
       throw CloudStorageException(body['error'] as String? ?? 'Upload failed');
     }
+  }
+
+  static Future<CloudShareResult> createShareLink({
+    required String token,
+    required String itemType,
+    required String path,
+    required bool isPublic,
+    List<String> emails = const [],
+  }) async {
+    final response = await http.post(
+      _gatewayUri('share-create'),
+      headers: _jsonHeaders(token),
+      body: jsonEncode({
+        'itemType': itemType,
+        'path': path,
+        'mode': isPublic ? 'public' : 'email',
+        if (!isPublic) 'emails': emails,
+      }),
+    );
+
+    final body = _decodeBody(response);
+
+    if (response.statusCode == 401) {
+      throw const CloudStorageException('Session expired. Please sign in again.');
+    }
+
+    if (response.statusCode >= 400 || body['success'] != true) {
+      throw CloudStorageException(body['error'] as String? ?? 'Failed to create share link');
+    }
+
+    final links = <CloudShareLink>[];
+    if (body['share_links'] is List) {
+      for (final entry in body['share_links'] as List) {
+        if (entry is Map) {
+          final url = entry['url'] as String?;
+          if (url != null && url.trim().isNotEmpty) {
+            links.add(CloudShareLink(url: url, email: entry['email'] as String?));
+          }
+        }
+      }
+    }
+
+    final expiresAtRaw = body['expires_at'] as String?;
+    final expiresAt = expiresAtRaw != null ? DateTime.tryParse(expiresAtRaw) : null;
+
+    return CloudShareResult(
+      token: body['token'] as String? ?? '',
+      mode: body['mode'] as String? ?? (isPublic ? 'public' : 'email'),
+      shareUrl: body['share_url'] as String?,
+      expiresAt: expiresAt,
+      shareLinks: links,
+    );
   }
 
   static Future<DownloadedCloudFile> downloadFile({required String token, required String fileKey}) async {

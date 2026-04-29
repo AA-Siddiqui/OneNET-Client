@@ -167,6 +167,79 @@ class _CloudStoragePanelState extends State<CloudStoragePanel> {
     );
   }
 
+  Future<CloudShareOptions?> _showShareDialog(CloudStorageFileModel entry) {
+    final emailController = TextEditingController();
+    var restrictToEmails = false;
+    String? errorText;
+
+    return showDialog<CloudShareOptions>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text('Share ${entry.name}'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  RadioListTile<bool>(
+                    value: false,
+                    groupValue: restrictToEmails,
+                    onChanged: (value) => setState(() => restrictToEmails = value ?? false),
+                    title: const Text('Anyone with the link'),
+                  ),
+                  RadioListTile<bool>(
+                    value: true,
+                    groupValue: restrictToEmails,
+                    onChanged: (value) => setState(() => restrictToEmails = value ?? false),
+                    title: const Text('Only specific emails'),
+                  ),
+                  if (restrictToEmails) ...[
+                    TextField(
+                      controller: emailController,
+                      decoration: InputDecoration(
+                        labelText: 'Allowed emails',
+                        hintText: 'Enter emails separated by commas',
+                        errorText: errorText,
+                      ),
+                      maxLines: 2,
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Cancel')),
+                FilledButton(
+                  onPressed: () {
+                    if (!restrictToEmails) {
+                      Navigator.of(dialogContext).pop(const CloudShareOptions.public());
+                      return;
+                    }
+
+                    final emails = emailController.text
+                        .split(RegExp(r'[\s,;]+'))
+                        .map((value) => value.trim().toLowerCase())
+                        .where((value) => value.contains('@'))
+                        .toSet()
+                        .toList(growable: false);
+
+                    if (emails.isEmpty) {
+                      setState(() => errorText = 'Enter at least one valid email.');
+                      return;
+                    }
+
+                    Navigator.of(dialogContext).pop(CloudShareOptions.email(emails));
+                  },
+                  child: const Text('Share'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -241,7 +314,13 @@ class _CloudStoragePanelState extends State<CloudStoragePanel> {
                 busy: storage.isBusy,
                 onOpenFolder: (entry) => storage.openFolder(token, entry),
                 onDownload: (entry) => storage.downloadToLocal(token, entry),
-                onShare: (entry) => storage.shareEntry(token, entry),
+                onShare: (entry) async {
+                  final options = await _showShareDialog(entry);
+                  if (options == null) {
+                    return;
+                  }
+                  await storage.shareEntry(token, entry, options);
+                },
                 onDelete: (entry) async {
                   final confirmed = await _confirmDelete(entry);
                   if (!confirmed) {
@@ -442,7 +521,7 @@ class _StorageActions extends StatelessWidget {
                   child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.accentBright),
                 )
               : const Icon(LucideIcons.upload, size: 16),
-          label: Text('Upload File', style: AppTextStyles.mono.copyWith(color: AppColors.accentBright)),
+          label: Text('Upload Files', style: AppTextStyles.mono.copyWith(color: AppColors.accentBright)),
         ),
         OutlinedButton.icon(
           onPressed: onCreateFolder,
