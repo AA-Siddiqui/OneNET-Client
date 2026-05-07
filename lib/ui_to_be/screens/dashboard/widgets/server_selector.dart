@@ -84,8 +84,6 @@ class ServerSelector extends StatelessWidget {
                                   canSwitch: canSwitch,
                                 ),
                               ),
-                              const SizedBox(height: 8),
-                              _buildCustomConnectionTile(context),
                             ],
                           ),
                   ),
@@ -167,53 +165,53 @@ class ServerSelector extends StatelessWidget {
     );
   }
 
-  Widget _buildCustomConnectionTile(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(4),
-        onTap: () {
-          Navigator.of(context).pop();
-          CurrentAppBridge.showAddProfile();
-        },
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            border: Border.all(color: AppColors.accent.withValues(alpha: 0.4)),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: AppColors.accent.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Icon(LucideIcons.plus, color: AppColors.accentBright, size: 16),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('ADD CUSTOM CONNECTION', style: AppTextStyles.heading3.copyWith(fontSize: 14)),
-                    Text(
-                      'Import or add your own Hiddify profile',
-                      style: AppTextStyles.monoSmall.copyWith(color: AppColors.textDim),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(LucideIcons.chevronRight, color: AppColors.textDim, size: 16),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  // Widget _buildCustomConnectionTile(BuildContext context) {
+  //   return Material(
+  //     color: Colors.transparent,
+  //     child: InkWell(
+  //       borderRadius: BorderRadius.circular(4),
+  //       onTap: () {
+  //         Navigator.of(context).pop();
+  //         CurrentAppBridge.showAddProfile();
+  //       },
+  //       child: Container(
+  //         padding: const EdgeInsets.all(14),
+  //         decoration: BoxDecoration(
+  //           color: AppColors.surface,
+  //           border: Border.all(color: AppColors.accent.withValues(alpha: 0.4)),
+  //           borderRadius: BorderRadius.circular(4),
+  //         ),
+  //         child: Row(
+  //           children: [
+  //             Container(
+  //               width: 36,
+  //               height: 36,
+  //               decoration: BoxDecoration(
+  //                 color: AppColors.accent.withValues(alpha: 0.15),
+  //                 borderRadius: BorderRadius.circular(4),
+  //               ),
+  //               child: const Icon(LucideIcons.plus, color: AppColors.accentBright, size: 16),
+  //             ),
+  //             const SizedBox(width: 12),
+  //             Expanded(
+  //               child: Column(
+  //                 crossAxisAlignment: CrossAxisAlignment.start,
+  //                 children: [
+  //                   Text('ADD CUSTOM CONNECTION', style: AppTextStyles.heading3.copyWith(fontSize: 14)),
+  //                   Text(
+  //                     'Import or add your own Hiddify profile',
+  //                     style: AppTextStyles.monoSmall.copyWith(color: AppColors.textDim),
+  //                   ),
+  //                 ],
+  //               ),
+  //             ),
+  //             const Icon(LucideIcons.chevronRight, color: AppColors.textDim, size: 16),
+  //           ],
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {
