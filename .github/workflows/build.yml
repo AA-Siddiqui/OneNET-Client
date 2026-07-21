@@ -11,10 +11,14 @@ on:
       channel:
         type: string
         default: "dev"
+      core-channel:
+        type: string
+        default: "prod"
 
 env:
   IS_GITHUB_ACTIONS: 1
   CHANNEL: "${{ inputs.channel }}"
+  CORE_CHANNEL: "${{ inputs.core-channel }}"
   FLUTTER_VERSION: '3.38.5'
   NDK_VERSION: r28c
   UPLOAD_ARTIFACT: "${{ inputs.upload-artifact }}"

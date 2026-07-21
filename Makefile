@@ -48,8 +48,10 @@ GEO_ASSETS_DIR=assets$(SEP)core
 CORE_PRODUCT_NAME=hiddify-core
 CORE_NAME=hiddify-lib
 LIB_NAME=hiddify-core
+FASTFORGE_VERSION ?= 0.6.6
+CORE_CHANNEL ?= prod
 
-ifeq ($(CHANNEL),prod)
+ifeq ($(CORE_CHANNEL),prod)
 	CORE_URL=https://github.com/hiddify/hiddify-next-core/releases/download/v$(core.version)
 else
 	CORE_URL=https://github.com/hiddify/hiddify-next-core/releases/download/draft
@@ -145,7 +147,7 @@ protos: generate_go_protoc generate_kotlin_protos generate_dart_protoc
 macos-install-deps:
 	brew install create-dmg tree 
 	npm install -g appdmg
-	dart pub global activate fastforge
+	dart pub global activate fastforge $(FASTFORGE_VERSION)
 
 ios-install-deps: 
 	if [ "$(flutter)" = "true" ]; then \
@@ -167,11 +169,11 @@ ios-install-deps:
 	brew install create-dmg tree 
 	npm install -g appdmg
 	
-	dart pub global activate fastforge
+	dart pub global activate fastforge $(FASTFORGE_VERSION)
 	
 
 android-install-deps: 
-	dart pub global activate fastforge
+	dart pub global activate fastforge $(FASTFORGE_VERSION)
 android-apk-install-deps: android-install-deps
 android-aab-install-deps: android-install-deps
 # loads the package list from linux_deps.list
@@ -225,7 +227,7 @@ linux-install-deps:
 	if ! grep -q '.pub-cache/bin' ~/.bashrc; then \
 		echo 'export PATH="$$HOME/.pub-cache/bin:$$PATH"' >> ~/.bashrc; \
 	fi; \
-	dart pub global activate fastforge; \
+	dart pub global activate fastforge $(FASTFORGE_VERSION); \
 	dart pub global activate protoc_plugin; \
 	echo ""; \
 	echo "============================================================"; \
@@ -256,7 +258,7 @@ linux-flutter-sync:
 	fi
 
 windows-install-deps:
-	dart pub global activate fastforge
+	dart pub global activate fastforge $(FASTFORGE_VERSION)
 # 	choco install innosetup -y
 	
 gen_translations: #generating missing translations using google translate
@@ -284,7 +286,9 @@ android-aab-release:
 	  --build-dart-define=sentry_dsn=$(SENTRY_DSN) \
 	  --build-dart-define=release=google-play
 
-windows-release: windows-zip-release windows-exe-release windows-msix-release
+windows-release: windows-zip-release
+
+windows-all-release: windows-zip-release windows-exe-release windows-msix-release
 
 windows-zip-release:
 	fastforge package \
@@ -542,4 +546,3 @@ ios-temp-prepare:
 	flutter build ios-framework
 	cd ios
 	pod install
-	
