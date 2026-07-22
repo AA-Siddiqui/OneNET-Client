@@ -1,10 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:hiddify/core/localization/translations.dart';
 import 'package:hiddify/core/preferences/actions_at_closing.dart';
 import 'package:hiddify/core/preferences/general_preferences.dart';
 import 'package:hiddify/core/router/dialog/dialog_notifier.dart';
 import 'package:hiddify/core/router/go_router/go_router_notifier.dart';
+import 'package:hiddify/features/connection/model/connection_status.dart';
+import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
 import 'package:hiddify/features/window/notifier/window_notifier.dart';
 import 'package:hiddify/utils/custom_loggers.dart';
 import 'package:hiddify/utils/platform_utils.dart';
@@ -67,8 +70,40 @@ class _WindowWrapperState extends ConsumerState<WindowWrapper> with WindowListen
         await ref.read(windowNotifierProvider.notifier).hide();
 
       case ActionsAtClosing.exit:
+        if (ref.read(connectionNotifierProvider).valueOrNull case Connected()) {
+          final closeAction = await _showConnectedExitDialog(rootNavKey.currentContext!);
+          switch (closeAction) {
+            case ActionsAtClosing.hide:
+              await ref.read(windowNotifierProvider.notifier).hide();
+            case ActionsAtClosing.exit:
+              await ref.read(windowNotifierProvider.notifier).exit();
+            case ActionsAtClosing.ask:
+            case null:
+          }
+          return;
+        }
         await ref.read(windowNotifierProvider.notifier).exit();
     }
+  }
+
+  Future<ActionsAtClosing?> _showConnectedExitDialog(BuildContext context) {
+    final t = ref.read(translationsProvider).requireValue;
+
+    return showDialog<ActionsAtClosing>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("VPN is connected"),
+          content: const Text(
+            "Closing the application will disconnect the VPN. Do you want to exit or hide it to the system tray?",
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(context).pop(ActionsAtClosing.hide), child: Text(t.common.hide)),
+            FilledButton(onPressed: () => Navigator.of(context).pop(ActionsAtClosing.exit), child: Text(t.common.exit)),
+          ],
+        );
+      },
+    );
   }
 
   @override
