@@ -3,6 +3,7 @@ import 'package:hiddify/core/analytics/analytics_controller.dart';
 import 'package:hiddify/core/localization/locale_extensions.dart';
 import 'package:hiddify/core/localization/locale_preferences.dart';
 import 'package:hiddify/core/localization/translations.dart';
+import 'package:hiddify/core/preferences/actions_at_closing.dart';
 import 'package:hiddify/core/preferences/general_preferences.dart';
 import 'package:hiddify/core/router/dialog/dialog_notifier.dart';
 import 'package:hiddify/core/theme/app_theme_mode.dart';
@@ -113,17 +114,61 @@ class ClosingPrefTile extends ConsumerWidget {
     final t = ref.watch(translationsProvider).requireValue;
 
     final action = ref.watch(Preferences.actionAtClose);
+    final selectedAction = switch (action) {
+      ActionsAtClosing.hide => {ActionsAtClosing.hide},
+      ActionsAtClosing.exit => {ActionsAtClosing.exit},
+      ActionsAtClosing.ask => <ActionsAtClosing>{},
+    };
+    final subtitle = switch (action) {
+      ActionsAtClosing.hide => "Hide to system tray",
+      ActionsAtClosing.exit => "Exit the application",
+      ActionsAtClosing.ask => t.dialogs.windowClosing.askEachTime,
+    };
 
-    return ListTile(
-      title: Text(t.dialogs.windowClosing.alertMessage),
-      subtitle: Text(action.present(t)),
-      leading: const Icon(Icons.logout_rounded),
-      onTap: () async {
-        final selectedAction = await ref.read(dialogNotifierProvider.notifier).showActionAtClosing(selected: action);
-        if (selectedAction != null) {
-          await ref.read(Preferences.actionAtClose.notifier).update(selectedAction);
-        }
-      },
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.logout_rounded),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(t.dialogs.windowClosing.alertMessage, style: Theme.of(context).textTheme.bodyLarge),
+                    const SizedBox(height: 2),
+                    Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<ActionsAtClosing>(
+              emptySelectionAllowed: true,
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(
+                  value: ActionsAtClosing.hide,
+                  icon: Icon(Icons.visibility_off_rounded),
+                  label: Text("Hide to tray"),
+                ),
+                ButtonSegment(value: ActionsAtClosing.exit, icon: Icon(Icons.close_rounded), label: Text("Exit app")),
+              ],
+              selected: selectedAction,
+              onSelectionChanged: (selection) async {
+                if (selection.isEmpty) return;
+                await ref.read(Preferences.actionAtClose.notifier).update(selection.first);
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
