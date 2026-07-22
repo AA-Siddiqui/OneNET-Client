@@ -115,7 +115,7 @@ class ClosingPrefTile extends ConsumerWidget {
     final action = ref.watch(Preferences.actionAtClose);
 
     return ListTile(
-      title: Text(t.pages.settings.general.actionAtClosing),
+      title: Text(t.dialogs.windowClosing.alertMessage),
       subtitle: Text(action.present(t)),
       leading: const Icon(Icons.logout_rounded),
       onTap: () async {
