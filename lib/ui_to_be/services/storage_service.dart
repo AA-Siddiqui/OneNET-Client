@@ -5,11 +5,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class StorageService {
   static const _tokenKey = 'auth_token';
+  static const _tokenSavedAtKey = 'auth_token_saved_at';
+  static const _loginDataKey = 'auth_login_data';
   static const _firstTimeGamingKey = 'first_time_gaming';
   static const _lastSelectedVpnServerKey = 'last_selected_vpn_server';
   static const _vpnConnectedSinceKey = 'vpn_connected_since';
   static const _topDownSpeedKey = 'top_download_speed';
   static const _topUpSpeedKey = 'top_upload_speed';
+  static const _tokenMaxAge = Duration(days: 365);
 
   static Future<void> saveTopDownloadSpeed(double speed) async {
     final prefs = await SharedPreferences.getInstance();
@@ -34,16 +37,62 @@ class StorageService {
   static Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, token);
+    await prefs.setInt(_tokenSavedAtKey, DateTime.now().millisecondsSinceEpoch);
   }
 
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_tokenKey);
+    final token = prefs.getString(_tokenKey);
+    if (token == null || token.trim().isEmpty) {
+      return null;
+    }
+
+    final savedAtRaw = prefs.getInt(_tokenSavedAtKey);
+    if (savedAtRaw == null) {
+      await prefs.setInt(
+        _tokenSavedAtKey,
+        DateTime.now().millisecondsSinceEpoch,
+      );
+      return token;
+    }
+
+    final savedAt = DateTime.fromMillisecondsSinceEpoch(savedAtRaw);
+    if (DateTime.now().difference(savedAt) > _tokenMaxAge) {
+      await clearToken();
+      return null;
+    }
+
+    return token;
   }
 
   static Future<void> clearToken() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
+    await prefs.remove(_tokenSavedAtKey);
+    await prefs.remove(_loginDataKey);
+  }
+
+  static Future<void> saveLoginData(Map<String, dynamic> loginData) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_loginDataKey, jsonEncode(loginData));
+  }
+
+  static Future<Map<String, dynamic>?> getLoginData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final encoded = prefs.getString(_loginDataKey);
+    if (encoded == null || encoded.trim().isEmpty) {
+      return null;
+    }
+
+    try {
+      final decoded = jsonDecode(encoded);
+      if (decoded is! Map) {
+        return null;
+      }
+      return decoded.map((key, value) => MapEntry('$key', value));
+    } catch (_) {
+      return null;
+    }
   }
 
   static Future<bool> isFirstTimeGaming() async {
@@ -108,7 +157,10 @@ class StorageService {
 
   static Future<void> saveVpnConnectedSince(DateTime connectedSince) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_vpnConnectedSinceKey, connectedSince.millisecondsSinceEpoch);
+    await prefs.setInt(
+      _vpnConnectedSinceKey,
+      connectedSince.millisecondsSinceEpoch,
+    );
   }
 
   static Future<DateTime?> getVpnConnectedSince() async {

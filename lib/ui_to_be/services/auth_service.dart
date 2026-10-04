@@ -1,6 +1,7 @@
 import 'dart:convert';
+
+import 'package:hiddify/ui_to_be/config/app_constants.dart';
 import 'package:http/http.dart' as http;
-import '../config/app_constants.dart';
 
 class AuthService {
   /// Sign in with email/username and password via the login edge function.
@@ -56,7 +57,8 @@ class AuthService {
   }
 
   /// Fetch user profile and subscription using a stored token.
-  /// Returns the full response map on success, or null if the token is invalid.
+  /// Returns the full response map on success, null if the token is invalid,
+  /// and throws [AuthException] when the profile could not be refreshed.
   static Future<Map<String, dynamic>?> fetchProfile(String token) async {
     try {
       final response = await http.get(
@@ -65,12 +67,19 @@ class AuthService {
       );
 
       if (response.statusCode == 401) return null;
+      if (response.statusCode != 200) {
+        throw const AuthException('Connection error. Please try again.');
+      }
 
       final body = jsonDecode(response.body) as Map<String, dynamic>;
-      if (body['success'] != true) return null;
+      if (body['success'] != true) {
+        throw AuthException(body['error'] as String? ?? 'Connection error. Please try again.');
+      }
       return body;
+    } on AuthException {
+      rethrow;
     } catch (_) {
-      return null;
+      throw const AuthException('Connection error. Please try again.');
     }
   }
 }
